@@ -25,6 +25,7 @@ app.use(cors({
       'http://localhost:3000', 
       'http://localhost:3001', 
       'http://localhost:3002',
+      'http://localhost:3003',
       'https://boult-india-ecommerce.vercel.app',
       'https://boult-india-admin.vercel.app',
       process.env.FRONTEND_URL,
@@ -305,6 +306,19 @@ app.get('/api/razorpay/payment/:paymentId', async (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Backend is running', timestamp: new Date().toISOString(), port: PORT });
+});
+
+// Test endpoint for debugging CORS
+app.get('/api/test-connection', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.json({ 
+    success: true, 
+    message: 'Connection successful',
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent'],
+    timestamp: new Date().toISOString()
+  });
 });
 
 // 404 handler
