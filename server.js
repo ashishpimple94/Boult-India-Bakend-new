@@ -68,6 +68,7 @@ app.options('*', (req, res) => {
 // Data file paths
 const productsFile = path.join(__dirname, 'data', 'products.json');
 const ordersFile = path.join(__dirname, 'data', 'orders.json');
+const usersFile = path.join(__dirname, 'data', 'users.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
@@ -80,6 +81,9 @@ if (!fs.existsSync(productsFile)) {
 }
 if (!fs.existsSync(ordersFile)) {
   fs.writeFileSync(ordersFile, '[]');
+}
+if (!fs.existsSync(usersFile)) {
+  fs.writeFileSync(usersFile, '[]');
 }
 
 // Error handling middleware
@@ -99,6 +103,127 @@ app.get('/api/products', (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch products' });
   }
 });
+
+// ==================== SIMPLE AUTHENTICATION ENDPOINTS ====================
+
+// POST register user (simple version)
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long' });
+    }
+
+    // Read existing users
+    const data = fs.readFileSync(usersFile, 'utf-8');
+    const users = JSON.parse(data);
+
+    // Check if user already exists
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(400).json({ success: false, error: 'User with this email already exists' });
+    }
+
+    // Create new user (simple password storage - in production use proper hashing)
+    const newUser = {
+      id: `USER_${Date.now()}`,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      phone: phone || '',
+      password: password, // Simple storage for demo
+      role: 'customer',
+      addresses: [],
+      wishlist: [],
+      isActive: true,
+      emailVerified: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    // Save user
+    users.push(newUser);
+    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+
+    // Return user data (without password)
+    const { password: _, ...userWithoutPassword } = newUser;
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      user: userWithoutPassword,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ success: false, error: 'Failed to register user' });
+  }
+});
+
+// POST login user (simple version)
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required' });
+    }
+
+    // Read users
+    const data = fs.readFileSync(usersFile, 'utf-8');
+    const users = JSON.parse(data);
+
+    // Find user
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({ success: false, error: 'Account is deactivated. Please contact support.' });
+    }
+
+    // Verify password (simple comparison - in production use proper verification)
+    if (user.password !== password) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    // Update last login
+    user.lastLogin = new Date().toISOString();
+    user.updatedAt = new Date().toISOString();
+    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+
+    // Return user data (without password)
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: userWithoutPassword,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ success: false, error: 'Failed to login' });
+  }
+});
+
+// ==================== END AUTHENTICATION ENDPOINTS ====================
 
 // POST save order
 app.post('/api/save-order', (req, res) => {
