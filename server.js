@@ -17,12 +17,52 @@ const razorpay = new Razorpay({
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', process.env.FRONTEND_URL].filter(Boolean),
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000', 
+      'http://localhost:3001', 
+      'http://localhost:3002',
+      'https://boult-india-ecommerce.vercel.app',
+      'https://boult-india-admin.vercel.app',
+      process.env.FRONTEND_URL,
+      process.env.ADMIN_URL
+    ].filter(Boolean);
+    
+    // Allow any localhost origin for development
+    if (origin.includes('localhost') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Cache-Control',
+    'X-File-Name'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
 app.use(express.json());
+
+// Handle preflight requests
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 // Data file paths
 const productsFile = path.join(__dirname, 'data', 'products.json');
@@ -173,10 +213,20 @@ app.delete('/api/delete-order', (req, res) => {
 // Razorpay: Create Order
 app.post('/api/razorpay/create-order', async (req, res) => {
   try {
+    console.log('🔄 Creating Razorpay order:', req.body);
+    console.log('🔄 Request headers:', req.headers);
+    console.log('🔄 Request origin:', req.headers.origin);
+    
     const { amount, orderId, customer } = req.body;
 
     if (!amount || !orderId) {
+      console.error('❌ Missing required fields:', { amount, orderId });
       return res.status(400).json({ success: false, error: 'Missing amount or orderId' });
+    }
+
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error('❌ Razorpay credentials not configured');
+      return res.status(500).json({ success: false, error: 'Payment gateway not configured' });
     }
 
     const options = {
@@ -189,11 +239,27 @@ app.post('/api/razorpay/create-order', async (req, res) => {
       }
     };
 
+    console.log('🔄 Razorpay order options:', options);
     const order = await razorpay.orders.create(options);
+    console.log('✅ Razorpay order created:', order.id);
+    
+    // Set CORS headers explicitly
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     res.json({ success: true, order });
   } catch (error) {
-    console.error('Error creating Razorpay order:', error);
-    res.status(500).json({ success: false, error: 'Failed to create payment order' });
+    console.error('❌ Error creating Razorpay order:', error);
+    
+    // Set CORS headers even for errors
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create payment order',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
