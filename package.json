@@ -9,7 +9,12 @@
     "dev": "nodemon server.js",
     "dev:mongodb": "nodemon server-mongodb.js",
     "migrate": "node scripts/migrateData.js",
+    "build": "echo 'No build step required'",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
   },
   "keywords": ["boult", "ecommerce", "backend", "mongodb", "razorpay"],
   "author": "V Tech Multi Solutions",
