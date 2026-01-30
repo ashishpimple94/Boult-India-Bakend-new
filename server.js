@@ -430,7 +430,12 @@ app.get('/api/razorpay/payment/:paymentId', async (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'Backend is running', timestamp: new Date().toISOString(), port: PORT });
+  res.json({ 
+    status: 'Backend is running with authentication', 
+    timestamp: new Date().toISOString(), 
+    port: PORT,
+    version: '2.0.0'
+  });
 });
 
 // Test endpoint for debugging CORS
