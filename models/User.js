@@ -2,6 +2,13 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true
+  },
   firstName: {
     type: String,
     required: true,
@@ -40,7 +47,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['customer', 'admin'],
+    enum: ['customer', 'admin', 'super_admin'],
     default: 'customer'
   },
   addresses: [{
@@ -75,16 +82,24 @@ const userSchema = new mongoose.Schema({
   passwordResetToken: String,
   passwordResetExpires: Date
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Indexes
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
+userSchema.index({ username: 1 });
 
 // Virtual for full name
 userSchema.virtual('fullName').get(function() {
-  return `${this.firstName} ${this.lastName}`;
+  return `${this.firstName} ${this.lastName}`.trim();
+});
+
+// Virtual for display name compatible with frontend
+userSchema.virtual('name').get(function() {
+  return `${this.firstName} ${this.lastName}`.trim();
 });
 
 // Hash password before saving

@@ -17,11 +17,58 @@ const User = require('./models/User');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Connect to MongoDB
+// Utils
+const sanitizeUser = (userDoc) => {
+  if (!userDoc) re// Connect to MongoDB
 connectDB();
+
+// Seed default admin users
+const seedAdminUsers = async () => {
+  try {
+    const defaultAdmins = [
+      {
+        username: 'admin',
+        email: 'admin@boultindia.com',
+        firstName: 'Boult',
+        lastName: 'Admin',
+        password: 'admin123',
+        role: 'super_admin'
+      },
+      {
+        username: 'boultadmin',
+        email: 'support@boultindia.com',
+        firstName: 'Boult',
+        lastName: 'Support',
+        password: 'boult2026',
+        role: 'admin'
+      }
+    ];
+
+    for (const admin of defaultAdmins) {
+      const existing = await User.findOne({
+        $or: [
+          { username: admin.username.toLowerCase() },
+          { email: admin.email.toLowerCase() }
+        ]
+      });
+
+      if (!existing) {
+        const newAdmin = new User({
+          ...admin,
+          username: admin.username.toLowerCase(),
+          email: admin.email.toLowerCase(),
+          isActive: true
+        });
+        await newAdmin.save();
+        console.log(`✅ Seeded admin user: ${admin.username}`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to seed admin users:', error);
+  }
+};
+
+seedAdminUsers();
 
 // Security middleware
 app.use(helmet());
@@ -138,6 +185,90 @@ app.get('/api/products/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching product:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch product' });
+  }
+});
+
+// CREATE product
+app.post('/api/products', async (req, res) => {
+  try {
+    const productData = req.body;
+
+    if (!productData.id || !productData.name || !productData.price) {
+      return res.status(400).json({ success: false, error: 'Product id, name, and price are required' });
+    }
+
+    const existing = await Product.findOne({ id: productData.id });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Product with this id already exists' });
+    }
+
+    const product = await Product.create(productData);
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ success: false, error: 'Failed to create product' });
+  }
+});
+
+// UPDATE product
+app.put('/api/products', async (req, res) => {
+  try {
+    const productData = req.body;
+
+    if (!productData.id) {
+      return res.status(400).json({ success: false, error: 'Product id is required' });
+    }
+
+    const product = await Product.findOneAndUpdate(
+      { id: productData.id },
+      { ...productData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      product,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ success: false, error: 'Failed to update product' });
+  }
+});
+
+// DELETE product
+app.delete('/api/products', async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Product id is required' });
+    }
+
+    const product = await Product.findOneAndDelete({ id });
+
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Product deleted successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete product' });
   }
 });
 
@@ -305,6 +436,149 @@ app.delete('/api/delete-order', async (req, res) => {
   } catch (error) {
     console.error('Error deleting order:', error);
     res.status(500).json({ success: false, error: 'Failed to delete order' });
+  }
+});
+
+// ==================== AUTHENTICATION ROUTES ====================
+
+// User registration
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required' });
+    }
+
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long' });
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'User with this email already exists' });
+    }
+
+    const [firstName, ...rest] = name.trim().split(' ');
+    const lastName = rest.join(' ') || firstName;
+
+    const user = await User.create({
+      username: email.toLowerCase(),
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      phone: phone || '',
+      password,
+      role: 'customer',
+      isActive: true,
+      emailVerified: false
+    });
+
+    const safeUser = sanitizeUser(user);
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      user: safeUser,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ success: false, error: 'Failed to register user' });
+  }
+});
+
+// User login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({ success: false, error: 'Account is deactivated. Please contact support.' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const safeUser = sanitizeUser(user);
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: safeUser,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ success: false, error: 'Failed to login' });
+  }
+});
+
+// Admin login
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Username and password are required' });
+    }
+
+    const query = username.includes('@')
+      ? { email: username.toLowerCase() }
+      : { username: username.toLowerCase() };
+
+    const adminUser = await User.findOne({
+      ...query,
+      role: { $in: ['admin', 'super_admin'] }
+    });
+
+    if (!adminUser) {
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+
+    if (!adminUser.isActive) {
+      return res.status(401).json({ success: false, error: 'Admin account is deactivated. Please contact support.' });
+    }
+
+    const isMatch = await adminUser.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+
+    adminUser.lastLogin = new Date();
+    await adminUser.save();
+
+    const safeAdmin = sanitizeUser(adminUser);
+
+    res.json({
+      success: true,
+      message: 'Admin login successful',
+      user: safeAdmin,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error in admin login:', error);
+    res.status(500).json({ success: false, error: 'Failed to login' });
   }
 });
 
