@@ -56,15 +56,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Handle preflight requests
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
-
 // Data file paths
 const productsFile = path.join(__dirname, 'data', 'products.json');
 const ordersFile = path.join(__dirname, 'data', 'orders.json');
@@ -219,6 +210,69 @@ app.post('/api/auth/login', (req, res) => {
 
   } catch (error) {
     console.error('Error logging in user:', error);
+    res.status(500).json({ success: false, error: 'Failed to login' });
+  }
+});
+
+// ==================== ADMIN AUTHENTICATION ENDPOINTS ====================
+
+// Default admin credentials
+const DEFAULT_ADMIN_USERS = [
+  {
+    id: 'ADMIN_001',
+    username: 'admin',
+    email: 'admin@boultindia.com',
+    password: 'admin123',
+    role: 'super_admin',
+    name: 'Boult Admin',
+    createdAt: '2026-01-30T00:00:00.000Z'
+  },
+  {
+    id: 'ADMIN_002',
+    username: 'boultadmin',
+    email: 'support@boultindia.com',
+    password: 'boult2026',
+    role: 'admin',
+    name: 'Boult Support',
+    createdAt: '2026-01-30T00:00:00.000Z'
+  }
+];
+
+// POST admin login
+app.post('/api/admin/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Validate required fields
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Username and password are required' });
+    }
+
+    // Find admin user
+    const adminUser = DEFAULT_ADMIN_USERS.find(u => 
+      (u.username === username || u.email === username) && u.password === password
+    );
+
+    if (!adminUser) {
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+
+    // Return admin data (without password)
+    const { password: _, ...userWithoutPassword } = adminUser;
+    const authenticatedUser = {
+      ...userWithoutPassword,
+      lastLogin: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      message: 'Admin login successful',
+      user: authenticatedUser,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error in admin login:', error);
     res.status(500).json({ success: false, error: 'Failed to login' });
   }
 });
