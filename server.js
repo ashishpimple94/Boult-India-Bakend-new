@@ -28,6 +28,12 @@ app.use(cors({
       'http://localhost:3003',
       'https://boult-india-ecommerce.vercel.app',
       'https://boult-india-admin.vercel.app',
+      // Hostinger domains
+      'https://boultindia.com',
+      'https://www.boultindia.com',
+      'https://boult-india.hostinger.com',
+      'https://www.boult-india.hostinger.com',
+      // Add your actual Hostinger domain here
       process.env.FRONTEND_URL,
       process.env.ADMIN_URL
     ].filter(Boolean);
