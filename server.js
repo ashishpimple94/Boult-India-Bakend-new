@@ -101,6 +101,116 @@ app.get('/api/products', (req, res) => {
   }
 });
 
+// POST add new product
+app.post('/api/products', (req, res) => {
+  try {
+    const product = req.body;
+    
+    // Validate required fields
+    if (!product.name || !product.price) {
+      return res.status(400).json({ success: false, error: 'Product name and price are required' });
+    }
+
+    const data = fs.readFileSync(productsFile, 'utf-8');
+    const products = JSON.parse(data);
+    
+    // Generate unique ID
+    const newProduct = {
+      ...product,
+      id: `PROD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      price: parseFloat(product.price),
+      featured: product.featured || false,
+      onSale: product.onSale || false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    products.push(newProduct);
+    fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Product added successfully', 
+      product: newProduct,
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error adding product:', error);
+    res.status(500).json({ success: false, error: 'Failed to add product' });
+  }
+});
+
+// PUT update product
+app.put('/api/products', (req, res) => {
+  try {
+    const { id, ...updates } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Product ID is required' });
+    }
+
+    const data = fs.readFileSync(productsFile, 'utf-8');
+    let products = JSON.parse(data);
+    
+    const productIndex = products.findIndex(p => p.id === id);
+    if (productIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    // Update product
+    products[productIndex] = { 
+      ...products[productIndex], 
+      ...updates, 
+      price: parseFloat(updates.price || products[productIndex].price),
+      updatedAt: new Date().toISOString() 
+    };
+    
+    fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: 'Product updated successfully', 
+      product: products[productIndex],
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ success: false, error: 'Failed to update product' });
+  }
+});
+
+// DELETE product
+app.delete('/api/products', (req, res) => {
+  try {
+    const { id } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Product ID is required' });
+    }
+
+    const data = fs.readFileSync(productsFile, 'utf-8');
+    let products = JSON.parse(data);
+    
+    const initialLength = products.length;
+    products = products.filter(product => product.id !== id);
+    
+    if (products.length === initialLength) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: 'Product deleted successfully',
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete product' });
+  }
+});
+
 // ==================== SIMPLE AUTHENTICATION ENDPOINTS ====================
 
 // POST register user (simple version)
