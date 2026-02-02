@@ -31,6 +31,8 @@ app.use(cors({
       // Hostinger domains
       'https://boultindia.com',
       'https://www.boultindia.com',
+      'https://login.boultindia.com',
+      'https://admin.boultindia.com',
       'https://boult-india.hostinger.com',
       'https://www.boult-india.hostinger.com',
       // Add your actual Hostinger domain here
