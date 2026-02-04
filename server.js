@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 require('dotenv').config();
@@ -67,6 +68,37 @@ app.use(express.json());
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Keep original filename with timestamp to avoid conflicts
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Allow only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
 // Data file paths
 const productsFile = path.join(__dirname, 'data', 'products.json');
 const ordersFile = path.join(__dirname, 'data', 'orders.json');
@@ -92,6 +124,28 @@ if (!fs.existsSync(usersFile)) {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+});
+
+// POST upload image
+app.post('/api/upload-image', upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No image file provided' });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    
+    res.json({
+      success: true,
+      message: 'Image uploaded successfully',
+      imageUrl: imageUrl,
+      fullUrl: `${req.protocol}://${req.get('host')}${imageUrl}`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ success: false, error: 'Failed to upload image' });
+  }
 });
 
 // GET all products

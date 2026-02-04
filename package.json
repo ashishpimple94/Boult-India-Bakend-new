@@ -18,24 +18,30 @@
     "node": ">=14.0.0",
     "npm": ">=6.0.0"
   },
-  "keywords": ["boult", "ecommerce", "backend", "mongodb", "razorpay"],
+  "keywords": [
+    "boult",
+    "ecommerce",
+    "backend",
+    "mongodb",
+    "razorpay"
+  ],
   "author": "V Tech Multi Solutions",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
     "cors": "^2.8.6",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "razorpay": "^2.9.6",
-    "mongoose": "^8.1.1",
-    "bcryptjs": "^2.4.3",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.1.1",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.8",
-    "validator": "^13.11.0",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5",
-    "compression": "^1.7.4"
+    "razorpay": "^2.9.6",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
