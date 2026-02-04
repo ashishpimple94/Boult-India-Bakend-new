@@ -64,6 +64,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Data file paths
 const productsFile = path.join(__dirname, 'data', 'products.json');
 const ordersFile = path.join(__dirname, 'data', 'orders.json');
@@ -96,7 +99,19 @@ app.get('/api/products', (req, res) => {
   try {
     const data = fs.readFileSync(productsFile, 'utf-8');
     const products = JSON.parse(data);
-    res.json({ success: true, products, timestamp: new Date().toISOString() });
+    
+    // Fix image URLs for frontend consumption
+    const productsWithFixedImages = products.map(product => {
+      if (product.image && product.image.startsWith('/uploads/')) {
+        return {
+          ...product,
+          image: `${req.protocol}://${req.get('host')}${product.image}`
+        };
+      }
+      return product;
+    });
+    
+    res.json({ success: true, products: productsWithFixedImages, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error reading products:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch products' });
