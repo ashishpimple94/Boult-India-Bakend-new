@@ -157,39 +157,9 @@ app.get('/api/products', (req, res) => {
     const data = fs.readFileSync(productsFile, 'utf-8');
     const products = JSON.parse(data);
     
-    // Fix image URLs for frontend consumption
-    const productsWithFixedImages = products.map(product => {
-      let imageUrl = product.image;
-      
-      if (imageUrl) {
-        // If image starts with /uploads/, make it absolute
-        if (imageUrl.startsWith('/uploads/')) {
-          imageUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
-        }
-        // If image starts with / but not /uploads/, it's a public product image
-        else if (imageUrl.startsWith('/') && !imageUrl.startsWith('/uploads/')) {
-          imageUrl = `${req.protocol}://${req.get('host')}/product-images${imageUrl}`;
-        }
-        // If it's already a full URL, keep it as is
-        else if (imageUrl.startsWith('http')) {
-          imageUrl = imageUrl;
-        }
-        // If it's a relative path, make it absolute with product-images prefix
-        else {
-          imageUrl = `${req.protocol}://${req.get('host')}/product-images/${imageUrl}`;
-        }
-      } else {
-        // Default placeholder
-        imageUrl = `${req.protocol}://${req.get('host')}/product-images/placeholder-product.svg`;
-      }
-      
-      return {
-        ...product,
-        image: imageUrl
-      };
-    });
-    
-    res.json({ success: true, products: productsWithFixedImages, timestamp: new Date().toISOString() });
+    // Return products as-is with relative image paths
+    // Frontend will serve images from its own public folder
+    res.json({ success: true, products, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error reading products:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch products' });
