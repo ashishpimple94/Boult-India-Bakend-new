@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ORDER_1769782224582",
+    "customer": "ashish pimple",
+    "email": "ashishpimple94@gmail.com",
+    "phone": "09090385555",
+    "address": "B1, At Post Ghatnandur Tq-Ambejogai Dist beed, Pune, Maharashtra - 431517",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "pincode": "431517",
+    "amount": 205,
+    "paymentMethod": "cod",
+    "items": [
+      {
+        "name": "Brake Parts Clean",
+        "variant": "Default",
+        "quantity": 1,
+        "price": 205,
+        "image": "https://boultindia.com/wp-content/uploads/2022/09/Brake-Parts-front-clean.png"
+      }
+    ],
+    "status": "delivered",
+    "date": "2026-01-30T14:10:24.582Z",
+    "updatedAt": "2026-01-30T14:10:39.949Z"
+  }
+]

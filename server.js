@@ -478,8 +478,18 @@ app.post('/api/save-order', (req, res) => {
       return res.status(400).json({ success: false, error: 'Order already exists' });
     }
 
+    // Create backup before saving new order
+    const backupDir = path.join(__dirname, 'backups', 'orders');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    const backupFile = path.join(backupDir, `orders-backup-${Date.now()}.json`);
+    fs.writeFileSync(backupFile, JSON.stringify(orders, null, 2));
+    console.log(`📦 Order backup created: ${backupFile}`);
+
     orders.push(order);
     fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2));
+    
     res.json({ success: true, message: 'Order saved', orderId: order.id, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error saving order:', error);
@@ -535,6 +545,15 @@ app.put('/api/update-order', (req, res) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
+    // Create backup before updating
+    const backupDir = path.join(__dirname, 'backups', 'orders');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    const backupFile = path.join(backupDir, `orders-backup-${Date.now()}.json`);
+    fs.writeFileSync(backupFile, JSON.stringify(orders, null, 2));
+    console.log(`📦 Order backup created before update: ${backupFile}`);
+
     orders[orderIndex] = { ...orders[orderIndex], ...updates, updatedAt: new Date().toISOString() };
     fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2));
     res.json({ success: true, message: 'Order updated', order: orders[orderIndex], timestamp: new Date().toISOString() });
@@ -557,6 +576,16 @@ app.delete('/api/delete-order', (req, res) => {
     let orders = JSON.parse(data);
     
     const initialLength = orders.length;
+    
+    // Create backup before deleting
+    const backupDir = path.join(__dirname, 'backups', 'orders');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    const backupFile = path.join(backupDir, `orders-backup-before-delete-${Date.now()}.json`);
+    fs.writeFileSync(backupFile, JSON.stringify(orders, null, 2));
+    console.log(`📦 Order backup created before delete: ${backupFile}`);
+    
     orders = orders.filter(order => order.id !== orderId);
     
     if (orders.length === initialLength) {

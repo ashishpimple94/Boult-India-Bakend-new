@@ -1,0 +1,390 @@
+[
+  {
+    "id": "anti-rust-spray",
+    "name": "Anti Rust Spray",
+    "description": "Boult Anti Rust Spray is a specially formulated chemical which penetrates, cracks and dissolves the rust by displacing the moisture. Can be used at home, office, factory, automobiles and so forth. Safe on metal, painted surfaces, plastic & rubber.",
+    "price": 90,
+    "category": "spray",
+    "image": "/Anti-Rust-Spray-500ml-Website-2.png",
+    "rating": 4.6,
+    "reviews": 189,
+    "variants": [
+      { "name": "60ml", "price": 90 },
+      { "name": "500ml", "price": 425 }
+    ],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "battery-terminal-mask",
+    "name": "Battery Terminal Mask",
+    "description": "Boult Battery Terminal mask provides a superior coating on the battery terminals and inhibits sulphonation and gives better connectivity and longer battery life.",
+    "price": 265,
+    "category": "mask",
+    "image": "/Battery-Terminal-Mask-front.png",
+    "rating": 4.5,
+    "reviews": 156,
+    "variants": [
+      { "name": "150ml", "price": 265 },
+      { "name": "500ml", "price": 675 }
+    ],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "brake-parts-clean",
+    "name": "Brake Parts Clean",
+    "description": "Boult Brake Cleaner cleans the dirt, oil, and grease from the brake linings, drum, brake disc, shoes, pads and clutch assembly and provides efficient braking.",
+    "price": 205,
+    "category": "cleaner",
+    "image": "/Brake-Parts-front-clean.png",
+    "rating": 4.6,
+    "reviews": 178,
+    "variants": [
+      { "name": "100ml", "price": 205 },
+      { "name": "500ml", "price": 435 }
+    ],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "all-in-one-polish",
+    "name": "All in One Polish",
+    "description": "Premium all-in-one polish for complete car care and shine",
+    "price": 1800,
+    "category": "polish",
+    "image": "/vkhj.png",
+    "rating": 4.8,
+    "reviews": 245,
+    "variants": [
+      { "name": "5 Ltr", "price": 1800 }
+    ],
+    "featured": true,
+    "onSale": true,
+    "discount": 25,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "car-wash-soap",
+    "name": "Car Wash Soap",
+    "description": "Three levels of cleaning power from moderate to extreme for the wash best suited to your needs. Removes stains, tar, tree sap and even old wax to prep and restore tired surfaces. Fragrance-infused formula creates a pleasant atmosphere for a refreshing car care routine.",
+    "price": 325,
+    "category": "soap",
+    "image": "/car-wash-soap-1024x1024.png",
+    "rating": 4.5,
+    "reviews": 128,
+    "variants": [
+      { "name": "1Ltr", "price": 325 },
+      { "name": "5Ltr", "price": 1100 }
+    ],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "chain-clean",
+    "name": "Chain Clean",
+    "description": "Boult Chain Clean is a superior non-corrosive cleaner which removes the grease and dirt deposits from the chain rim, swing arm and the rollers. Compatible for all types of motorcycle and bicycle chains.",
+    "price": 220,
+    "category": "cleaner",
+    "image": "/Chain-Clean-front-1024x1024.png",
+    "rating": 4.3,
+    "reviews": 95,
+    "variants": [
+      { "name": "100ml", "price": 220 },
+      { "name": "500ml", "price": 425 }
+    ],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "chain-lubricant-spray",
+    "name": "Chain Lubricant Spray",
+    "description": "Boult Chain Lubricant is a superior chain spray designed to protect the chains against wear and corrosion. The special formulation penetrates the vital parts of the bike chains and provides excellent, long-lasting protection. Compatible for all types of motorcycle and bicycle chains with O-ring, X-ring, and Z-ring.",
+    "price": 175,
+    "category": "lubricant",
+    "image": "/Chain-Lube-Spray-500ml-2-1024x1024.png",
+    "rating": 4.6,
+    "reviews": 156,
+    "variants": [
+      { "name": "100ml", "price": 175 },
+      { "name": "150ml", "price": 250 },
+      { "name": "500ml", "price": 550 }
+    ],
+    "featured": true,
+    "onSale": true,
+    "discount": 15,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "electrical-parts-clean",
+    "name": "Electrical Parts Clean",
+    "description": "Boult Electrical Parts Clean is designed to clean and restore the electrical components and circuits which are damaged due to moisture and corrosion. Removes oil, dirt and displaces moisture from electrical circuits and connections.",
+    "price": 275,
+    "category": "cleaner",
+    "image": "/Electrical-Parts-Clean-front-1024x1024.png",
+    "rating": 4.4,
+    "reviews": 87,
+    "variants": [
+      { "name": "200ml", "price": 275 },
+      { "name": "500ml", "price": 425 }
+    ],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "engine-dresser",
+    "name": "Engine Dresser",
+    "description": "Boult Engine Dresser removes and cleans the under-bonnet surface of the engine area from dust, oil, and grease. Provides a new, fresh look to the surface under the bonnet. Heat resistant and does not harm the engine and other parts. Suitable for all types of passenger and commercial vehicles.",
+    "price": 575,
+    "category": "dresser",
+    "image": "/WhatsApp-Image-2025-08-14-at-12.34.25-AM-1-Photoroom.png",
+    "rating": 4.5,
+    "reviews": 112,
+    "variants": [
+      { "name": "1Ltr", "price": 575 },
+      { "name": "5Ltr", "price": 2750 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "engine-oil-flush",
+    "name": "Engine Oil Flush",
+    "description": "Boult Engine Oil Flush removes oxidised oil deposits from the crank case. Dissolves carbon particles and sludge from restricted oil passages. Eliminates wear caused by carbon deposits and enhances the performance of new engine oil.",
+    "price": 190,
+    "category": "treatment",
+    "image": "/Engin-oil-flush.png",
+    "rating": 4.2,
+    "reviews": 76,
+    "variants": [
+      { "name": "50ml", "price": 190 },
+      { "name": "250ml", "price": 510 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "engine-oil-treatment",
+    "name": "Engine Oil Treatment",
+    "description": "Boult Engine Oil Treatment with multi-polar formulation keeps the engine running smooth, quiet and efficient. Protects engine parts from oxidation, sludge and varnish deposition with strong anti-wear protection. Makes cold start easier and smoother.",
+    "price": 500,
+    "category": "treatment",
+    "image": "/Engin-oil-treatment-1024x1024.png",
+    "rating": 4.4,
+    "reviews": 98,
+    "variants": [
+      { "name": "250ml", "price": 500 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "four-wheeler-kit",
+    "name": "Four Wheeler Kit",
+    "description": "Complete car care kit with 6 premium Boult products. Includes Plastic and Fibre Restorer, Anti Rust Spray, Microfiber Cloth, All in One Polish, Windshield Screen Wash, and Car Wash Soap. Everything you need for professional car maintenance and detailing.",
+    "price": 675,
+    "category": "kit",
+    "image": "/4W-Kit-1-1024x1024.png",
+    "rating": 4.7,
+    "reviews": 203,
+    "variants": [{ "name": "Bundle", "price": 675 }],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "microfiber-cloth",
+    "name": "Multi Purpose Microfiber Cloth",
+    "description": "Premium microfiber cloth with 340 GSM thickness. High density material that is highly absorbent and traps dirt easily. Provides efficient cleaning for all surfaces without scratching.",
+    "price": 175,
+    "category": "cloth",
+    "image": "/Multi-purpose-Micro-Fiber-Cloth.png",
+    "rating": 4.6,
+    "reviews": 234,
+    "variants": [{ "name": "Single", "price": 175 }],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "plastic-restorer-kit",
+    "name": "Plastic and Fibre Restorer Kit",
+    "description": "Nano coating restores the original shine on plastic and fibre parts of cars and bikes. Reduces dust pickup and keeps surfaces clean. Easy to apply and quick drying. Includes Restoration Chemical and 2 Sponges for complete restoration.",
+    "price": 225,
+    "category": "restorer",
+    "image": "/4W-Plastic-and-Fibre-Restorer.png",
+    "rating": 4.3,
+    "reviews": 145,
+    "variants": [
+      { "name": "20ml", "price": 225 },
+      { "name": "50ml", "price": 375 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "radiator-coolant",
+    "name": "Radiator Coolant",
+    "description": "Premium radiator coolant that provides effective protection against scaling, rust and corrosion within the cooling system. Equipped with excellent heat transfer properties. Protects against freezing in winter and boil over in summer.",
+    "price": 275,
+    "category": "coolant",
+    "image": "/bott-1024x1024.png",
+    "rating": 4.5,
+    "reviews": 167,
+    "variants": [
+      { "name": "1 Ltr", "price": 275 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "rat-repellent-spray",
+    "name": "Rat Repellent Spray",
+    "description": "Effective rat repellent spray that repels rodents from the car engine area and protects cables, wires and rubber parts. Repels rodents for at least 3 months. Environment friendly, non-toxic and safe for human beings. Can be used for interior and exterior areas.",
+    "price": 80,
+    "category": "repellent",
+    "image": "/boult-raat-repelent.png",
+    "rating": 4.2,
+    "reviews": 89,
+    "variants": [
+      { "name": "50ml", "price": 80 },
+      { "name": "200ml", "price": 595 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "spray-paint",
+    "name": "Spray Paint",
+    "description": "Boult Spray Paint is a high quality 100% acrylic paint which offers strong compatibility with most types of paints. Can be used on wood, metal, steel, glass, plaster, ceramics, stone, and fabric. Provides smooth coverage, fast drying, and excellent corrosion resistance.",
+    "price": 300,
+    "category": "paint",
+    "image": "/spray-paint-front.png",
+    "rating": 4.4,
+    "reviews": 134,
+    "variants": [
+      { "name": "Regular", "price": 300 },
+      { "name": "Heat Resistant", "price": 375 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "throttle-carburettor-clean",
+    "name": "Throttle and Carburettor Clean",
+    "description": "Boult Throttle and Carburettor Clean is designed to provide superior cleaning formula which penetrates and flushes the carbon, varnish and gum deposits from the Throttle Body, carburettor and injectors which delivers optimum fuel, restores the engine power and enhances the fuel economy.",
+    "price": 225,
+    "category": "cleaner",
+    "image": "/Throttle-and-Carburettor-Clean-500ml-Website-2.png",
+    "rating": 4.6,
+    "reviews": 178,
+    "variants": [
+      { "name": "100ml", "price": 225 },
+      { "name": "150ml", "price": 280 },
+      { "name": "500ml", "price": 425 }
+    ],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "two-wheeler-kit",
+    "name": "Two Wheeler Kit",
+    "description": "Complete bike care kit with 5 premium Boult products. Includes Chain Lubricant Spray, Plastic and Fibre Restorer, Anti Rust Spray, Multi-purpose Microfiber Cloth, and Spray n Shine. Everything you need for professional bike maintenance and detailing.",
+    "price": 600,
+    "category": "kit",
+    "image": "/2W-Kit-1-1024x1024.png",
+    "rating": 4.7,
+    "reviews": 267,
+    "variants": [{ "name": "Bundle", "price": 600 }],
+    "featured": true,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "windshield-screen-wash",
+    "name": "Windshield Screen Wash",
+    "description": "Removes and cleans the dirt, deposits and pollutants from the windshield. Anti-smear formula provides clear visibility while driving. Compatible for all types of seasons. Protects the wiper and increases its life. Provides safety and comfort.",
+    "price": 50,
+    "category": "wash",
+    "image": "/windsheild-wash-1024x1024.png",
+    "rating": 4.5,
+    "reviews": 198,
+    "variants": [
+      { "name": "50ml Bottle", "price": 50 },
+      { "name": "50ml Pouch", "price": 25 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "silencer-coat-matt-black",
+    "name": "Silencer Coat Matt Black",
+    "description": "Boult Silencer Coat provides a superior long-lasting coating on silencer metal surfaces and protects them from rust and corrosion. Resistant to heat up to 500-600°C and water/salt corrosion. Fast drying and easy to use.",
+    "price": 290,
+    "category": "coating",
+    "image": "/Silencer-Coat-matt-black-front-1024x1024.png",
+    "rating": 4.5,
+    "reviews": 156,
+    "variants": [
+      { "name": "150ml", "price": 290 },
+      { "name": "200ml", "price": 375 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  },
+  {
+    "id": "silencer-coat-silver",
+    "name": "Silencer Coat Silver",
+    "description": "Boult Silencer Coat Silver provides a superior long-lasting coating on silencer metal surfaces and protects them from rust and corrosion. Resistant to heat up to 500-600°C and water/salt corrosion. Fast drying and easy to use with professional silver finish.",
+    "price": 290,
+    "category": "coating",
+    "image": "/Silencer-Coat-silver-front-1024x1024.png",
+    "rating": 4.5,
+    "reviews": 156,
+    "variants": [
+      { "name": "150ml", "price": 290 },
+      { "name": "400ml", "price": 375 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "updatedAt": "2026-01-31T00:00:00.000Z"
+  }
+]

@@ -1,0 +1,31 @@
+[
+  {
+    "id": "USER_1769774916065",
+    "name": "Test User",
+    "email": "test1769774916@example.com",
+    "phone": "",
+    "password": "test123",
+    "role": "customer",
+    "addresses": [],
+    "wishlist": [],
+    "isActive": true,
+    "emailVerified": false,
+    "createdAt": "2026-01-30T12:08:36.065Z",
+    "updatedAt": "2026-01-30T12:08:36.065Z"
+  },
+  {
+    "id": "USER_1769783330522",
+    "name": "ashish",
+    "email": "ashishpimple94@gmail.com",
+    "phone": "909038555",
+    "password": "Ashishp@77",
+    "role": "customer",
+    "addresses": [],
+    "wishlist": [],
+    "isActive": true,
+    "emailVerified": false,
+    "createdAt": "2026-01-30T14:28:50.522Z",
+    "updatedAt": "2026-01-30T14:29:03.873Z",
+    "lastLogin": "2026-01-30T14:29:03.873Z"
+  }
+]
