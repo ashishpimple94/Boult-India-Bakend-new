@@ -68,6 +68,9 @@ app.use(express.json());
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve public product images statically (for images like /Anti-Rust-Spray-500ml-Website-2.png)
+app.use('/product-images', express.static(path.join(__dirname, 'public')));
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -156,13 +159,34 @@ app.get('/api/products', (req, res) => {
     
     // Fix image URLs for frontend consumption
     const productsWithFixedImages = products.map(product => {
-      if (product.image && product.image.startsWith('/uploads/')) {
-        return {
-          ...product,
-          image: `${req.protocol}://${req.get('host')}${product.image}`
-        };
+      let imageUrl = product.image;
+      
+      if (imageUrl) {
+        // If image starts with /uploads/, make it absolute
+        if (imageUrl.startsWith('/uploads/')) {
+          imageUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
+        }
+        // If image starts with / but not /uploads/, it's a public product image
+        else if (imageUrl.startsWith('/') && !imageUrl.startsWith('/uploads/')) {
+          imageUrl = `${req.protocol}://${req.get('host')}/product-images${imageUrl}`;
+        }
+        // If it's already a full URL, keep it as is
+        else if (imageUrl.startsWith('http')) {
+          imageUrl = imageUrl;
+        }
+        // If it's a relative path, make it absolute with product-images prefix
+        else {
+          imageUrl = `${req.protocol}://${req.get('host')}/product-images/${imageUrl}`;
+        }
+      } else {
+        // Default placeholder
+        imageUrl = `${req.protocol}://${req.get('host')}/product-images/placeholder-product.svg`;
       }
-      return product;
+      
+      return {
+        ...product,
+        image: imageUrl
+      };
     });
     
     res.json({ success: true, products: productsWithFixedImages, timestamp: new Date().toISOString() });
