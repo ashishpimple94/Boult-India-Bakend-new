@@ -4,12 +4,17 @@ const path = require('path');
 // Hostinger SMTP Configuration
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.hostinger.com',
-  port: process.env.SMTP_PORT || 465,
-  secure: true, // true for 465, false for other ports
+  port: parseInt(process.env.SMTP_PORT) || 465,
+  secure: true, // Use SSL for port 465
   auth: {
-    user: process.env.SMTP_USER, // Your Hostinger email
-    pass: process.env.SMTP_PASS  // Your email password
-  }
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  },
+  connectionTimeout: 30000, // 30 seconds
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
+  logger: false,
+  debug: false
 });
 
 // Send Order Confirmation Email
