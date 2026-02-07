@@ -5,6 +5,7 @@ const path = require('path');
 const multer = require('multer');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const { sendOrderConfirmation } = require('./services/emailService');
 require('dotenv').config();
 
 const app = express();
@@ -106,6 +107,8 @@ const upload = multer({
 const productsFile = path.join(__dirname, 'data', 'products.json');
 const ordersFile = path.join(__dirname, 'data', 'orders.json');
 const usersFile = path.join(__dirname, 'data', 'users.json');
+const enquiriesFile = path.join(__dirname, 'data', 'enquiries.json');
+const reviewsFile = path.join(__dirname, 'data', 'reviews.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
@@ -121,6 +124,12 @@ if (!fs.existsSync(ordersFile)) {
 }
 if (!fs.existsSync(usersFile)) {
   fs.writeFileSync(usersFile, '[]');
+}
+if (!fs.existsSync(enquiriesFile)) {
+  fs.writeFileSync(enquiriesFile, '[]');
+}
+if (!fs.existsSync(reviewsFile)) {
+  fs.writeFileSync(reviewsFile, '[]');
 }
 
 // Error handling middleware
@@ -490,6 +499,17 @@ app.post('/api/save-order', (req, res) => {
     orders.push(order);
     fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2));
     
+    // Send order confirmation email
+    sendOrderConfirmation(order).then(result => {
+      if (result.success) {
+        console.log('✅ Order confirmation email sent successfully');
+      } else {
+        console.error('❌ Failed to send order confirmation email:', result.error);
+      }
+    }).catch(err => {
+      console.error('❌ Email sending error:', err);
+    });
+    
     res.json({ success: true, message: 'Order saved', orderId: order.id, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error saving order:', error);
@@ -689,6 +709,151 @@ app.get('/api/razorpay/payment/:paymentId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching payment:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch payment details' });
+  }
+});
+
+// ==================== ENQUIRY ENDPOINTS ====================
+
+// POST submit enquiry
+app.post('/api/enquiries', (req, res) => {
+  try {
+    const enquiry = req.body;
+    
+    if (!enquiry.name || !enquiry.email || !enquiry.message) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const data = fs.readFileSync(enquiriesFile, 'utf-8');
+    const enquiries = JSON.parse(data);
+    
+    const newEnquiry = {
+      ...enquiry,
+      id: `ENQ_${Date.now()}`,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    enquiries.push(newEnquiry);
+    fs.writeFileSync(enquiriesFile, JSON.stringify(enquiries, null, 2));
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Enquiry submitted successfully', 
+      enquiry: newEnquiry,
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error submitting enquiry:', error);
+    res.status(500).json({ success: false, error: 'Failed to submit enquiry' });
+  }
+});
+
+// GET all enquiries (admin only)
+app.get('/api/enquiries', (req, res) => {
+  try {
+    const data = fs.readFileSync(enquiriesFile, 'utf-8');
+    const enquiries = JSON.parse(data);
+    res.json({ success: true, enquiries, count: enquiries.length, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Error reading enquiries:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch enquiries' });
+  }
+});
+
+// ==================== REVIEW ENDPOINTS ====================
+
+// POST submit review
+app.post('/api/reviews', (req, res) => {
+  try {
+    const review = req.body;
+    
+    if (!review.productId || !review.rating || !review.comment) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const data = fs.readFileSync(reviewsFile, 'utf-8');
+    const reviews = JSON.parse(data);
+    
+    const newReview = {
+      ...review,
+      id: `REV_${Date.now()}`,
+      approved: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    reviews.push(newReview);
+    fs.writeFileSync(reviewsFile, JSON.stringify(reviews, null, 2));
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Review submitted successfully', 
+      review: newReview,
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error submitting review:', error);
+    res.status(500).json({ success: false, error: 'Failed to submit review' });
+  }
+});
+
+// GET reviews for a product
+app.get('/api/reviews/:productId', (req, res) => {
+  try {
+    const { productId } = req.params;
+    const data = fs.readFileSync(reviewsFile, 'utf-8');
+    const allReviews = JSON.parse(data);
+    const reviews = allReviews.filter(r => r.productId === productId && r.approved);
+    
+    res.json({ success: true, reviews, count: reviews.length, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch reviews' });
+  }
+});
+
+// GET all reviews (admin only)
+app.get('/api/reviews', (req, res) => {
+  try {
+    const data = fs.readFileSync(reviewsFile, 'utf-8');
+    const reviews = JSON.parse(data);
+    res.json({ success: true, reviews, count: reviews.length, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Error reading reviews:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch reviews' });
+  }
+});
+
+// PUT approve review (admin only)
+app.put('/api/reviews/approve', (req, res) => {
+  try {
+    const { reviewId } = req.body;
+    
+    if (!reviewId) {
+      return res.status(400).json({ success: false, error: 'Review ID is required' });
+    }
+
+    const data = fs.readFileSync(reviewsFile, 'utf-8');
+    let reviews = JSON.parse(data);
+    
+    const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+    if (reviewIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Review not found' });
+    }
+
+    reviews[reviewIndex].approved = true;
+    reviews[reviewIndex].approvedAt = new Date().toISOString();
+    
+    fs.writeFileSync(reviewsFile, JSON.stringify(reviews, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: 'Review approved', 
+      review: reviews[reviewIndex],
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error approving review:', error);
+    res.status(500).json({ success: false, error: 'Failed to approve review' });
   }
 });
 
