@@ -25,6 +25,8 @@ const sendOrderConfirmation = async (orderData) => {
     };
 
     console.log('📧 Sending email via Hostinger PHP script...');
+    console.log('🔗 API URL:', HOSTINGER_EMAIL_API);
+    console.log('📦 Email data:', JSON.stringify(emailData, null, 2));
     
     // Call Hostinger PHP script
     const response = await axios.post(HOSTINGER_EMAIL_API, emailData, {
@@ -34,15 +36,23 @@ const sendOrderConfirmation = async (orderData) => {
       timeout: 15000
     });
 
+    console.log('📨 Response status:', response.status);
+    console.log('📨 Response data:', JSON.stringify(response.data, null, 2));
+
     if (response.data && response.data.success) {
       console.log('✅ Order confirmation email sent successfully via Hostinger');
       return { success: true, messageId: response.data.orderId };
     } else {
-      throw new Error(response.data?.error || 'Unknown error from email service');
+      const errorMsg = response.data?.error || 'Unknown error from email service';
+      console.error('❌ Email service returned error:', errorMsg);
+      throw new Error(errorMsg);
     }
 
   } catch (error) {
-    console.error('❌ Error sending order confirmation email:', error.message);
+    console.error('❌ Error sending order confirmation email:');
+    console.error('Error message:', error.message);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
     return { success: false, error: error.message };
   }
 };
