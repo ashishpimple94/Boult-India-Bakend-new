@@ -3,7 +3,7 @@ const path = require('path');
 const axios = require('axios');
 
 // Hostinger PHP Email Service URL
-const HOSTINGER_EMAIL_API = process.env.HOSTINGER_EMAIL_API || 'https://boultindia.com/api/send-order-email.php';
+const HOSTINGER_EMAIL_API = process.env.HOSTINGER_EMAIL_API || 'https://boultindia.com/send-order-email.php';
 
 // Send Order Confirmation Email via Hostinger PHP Script
 const sendOrderConfirmation = async (orderData) => {
