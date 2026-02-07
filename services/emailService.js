@@ -5,16 +5,14 @@ const path = require('path');
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.hostinger.com',
   port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: true, // Use SSL for port 465
+  secure: true, // SSL for port 465
   auth: {
-    user: process.env.SMTP_USER,
+    user: process.env.SMTP_USER, // admin-orders@boultindia.com
     pass: process.env.SMTP_PASS
   },
-  connectionTimeout: 30000, // 30 seconds
+  connectionTimeout: 30000,
   greetingTimeout: 30000,
-  socketTimeout: 30000,
-  logger: false,
-  debug: false
+  socketTimeout: 30000
 });
 
 // Send Order Confirmation Email
@@ -147,9 +145,9 @@ const sendOrderConfirmation = async (orderData) => {
 
     // Email options with logo attachment
     const mailOptions = {
-      from: `"Boult India" <${process.env.SMTP_USER}>`,
+      from: `"Boult India Orders" <${process.env.SMTP_USER}>`, // admin-orders@boultindia.com
       to: email, // Customer email
-      cc: process.env.ADMIN_EMAIL || 'admin@boultindia.in', // Admin email in CC
+      cc: process.env.ADMIN_EMAIL, // vtechmultisolutions@gmail.com
       subject: `Order Confirmation - ${id} | Boult India`,
       html: emailHTML,
       attachments: [
