@@ -105,6 +105,14 @@ const orderSchema = new mongoose.Schema({
   items: [orderItemSchema],
   notes: String,
   trackingNumber: String,
+  orderDate: {
+    type: Date,
+    default: Date.now
+  },
+  processingDate: Date,
+  shippedDate: Date,
+  deliveredDate: Date,
+  cancelledDate: Date,
   deliveredAt: Date,
   cancelledAt: Date,
   cancelReason: String
