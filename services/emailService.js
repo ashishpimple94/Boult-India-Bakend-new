@@ -149,6 +149,102 @@ const sendOrderConfirmation = async (orderData) => {
   }
 };
 
+// Send Contact Form Email
+async function sendContactEmail(contactData) {
+  const { name, email, phone, enquiryType, subject, message } = contactData;
+  
+  const enquiryTypeLabels = {
+    general: 'General Inquiry',
+    distributorship: 'Enquiry for Distributorship',
+    orders: 'Contact for Orders Query',
+    technical: 'Technical Support',
+    bulk: 'Bulk Orders'
+  };
+
+  const mailOptions = {
+    from: `"Boult India Contact" <${process.env.HOSTINGER_EMAIL}>`,
+    to: 'vtechmultisolutions@gmail.com',
+    cc: process.env.HOSTINGER_EMAIL,
+    subject: `[${enquiryTypeLabels[enquiryType] || 'Contact Form'}] ${subject}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .info-row { margin: 15px 0; padding: 15px; background: white; border-left: 4px solid #f97316; border-radius: 5px; }
+          .label { font-weight: bold; color: #f97316; margin-bottom: 5px; }
+          .value { color: #333; }
+          .message-box { background: white; padding: 20px; border-radius: 5px; margin-top: 20px; border: 1px solid #e5e7eb; }
+          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0;">📧 New Contact Form Submission</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">${enquiryTypeLabels[enquiryType] || 'Contact Form'}</p>
+          </div>
+          
+          <div class="content">
+            <div class="info-row">
+              <div class="label">👤 Name:</div>
+              <div class="value">${name}</div>
+            </div>
+            
+            <div class="info-row">
+              <div class="label">📧 Email:</div>
+              <div class="value"><a href="mailto:${email}" style="color: #f97316;">${email}</a></div>
+            </div>
+            
+            ${phone ? `
+            <div class="info-row">
+              <div class="label">📱 Phone:</div>
+              <div class="value"><a href="tel:${phone}" style="color: #f97316;">${phone}</a></div>
+            </div>
+            ` : ''}
+            
+            <div class="info-row">
+              <div class="label">📋 Enquiry Type:</div>
+              <div class="value">${enquiryTypeLabels[enquiryType] || 'General Inquiry'}</div>
+            </div>
+            
+            <div class="info-row">
+              <div class="label">📌 Subject:</div>
+              <div class="value">${subject}</div>
+            </div>
+            
+            <div class="message-box">
+              <div class="label">💬 Message:</div>
+              <div class="value" style="margin-top: 10px; white-space: pre-wrap;">${message}</div>
+            </div>
+            
+            <div class="footer">
+              <p><strong>Boult India</strong></p>
+              <p>This email was sent from the contact form on boultindia.com</p>
+              <p>Received on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Contact email sent to vtechmultisolutions@gmail.com`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error sending contact email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
-  sendOrderConfirmation
+  sendOrderConfirmation,
+  sendContactEmail
 };

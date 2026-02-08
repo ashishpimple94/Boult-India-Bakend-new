@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { sendOrderConfirmation } = require('./services/emailService');
+const { sendOrderConfirmation, sendContactEmail } = require('./services/emailService');
 require('dotenv').config();
 
 const app = express();
@@ -411,6 +411,32 @@ app.delete('/api/banners', async (req, res) => {
   } catch (error) {
     console.error('Error deleting banner:', error);
     res.status(500).json({ success: false, error: 'Failed to delete banner' });
+  }
+});
+
+// ============ CONTACT API ============
+
+// POST contact form
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, phone, enquiryType, subject, message } = req.body;
+    
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    // Send email
+    const result = await sendContactEmail({ name, email, phone, enquiryType, subject, message });
+    
+    if (result.success) {
+      console.log(`✅ Contact form submitted by ${name} (${email})`);
+      res.json({ success: true, message: 'Message sent successfully' });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to send email' });
+    }
+  } catch (error) {
+    console.error('Error processing contact form:', error);
+    res.status(500).json({ success: false, error: 'Failed to process contact form' });
   }
 });
 
