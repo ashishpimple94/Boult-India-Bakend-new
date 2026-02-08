@@ -1,12 +1,14 @@
 const nodemailer = require('nodemailer');
 
-// Gmail SMTP Configuration
+// Hostinger SMTP Configuration
 const createTransporter = () => {
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.hostinger.com',
+    port: 465,
+    secure: true, // use SSL
     auth: {
-      user: process.env.GMAIL_USER || 'vtechmultisolutions@gmail.com',
-      pass: process.env.GMAIL_APP_PASSWORD || 'YOUR_APP_PASSWORD_HERE'
+      user: process.env.HOSTINGER_EMAIL || 'orders@boultindia.com',
+      pass: process.env.HOSTINGER_PASSWORD || 'Hrishi@123*'
     }
   });
 };
@@ -16,7 +18,7 @@ const sendOrderConfirmation = async (orderData) => {
   try {
     const { customer, email, id, amount, items, address, city, state, pincode, phone } = orderData;
     
-    console.log('📧 Sending email via Gmail SMTP...');
+    console.log('📧 Sending email via Hostinger SMTP...');
     console.log('📦 Order ID:', id);
     console.log('📧 To:', email);
     
@@ -123,7 +125,7 @@ const sendOrderConfirmation = async (orderData) => {
     
     // Email options
     const mailOptions = {
-      from: '"Boult India Orders" <vtechmultisolutions@gmail.com>',
+      from: '"Boult India Orders" <orders@boultindia.com>',
       to: email,
       cc: 'vtechmultisolutions@gmail.com',
       replyTo: 'orders@boultindia.com',
