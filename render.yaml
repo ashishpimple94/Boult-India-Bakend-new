@@ -4,19 +4,14 @@ services:
     env: node
     plan: free
     buildCommand: npm install
-    startCommand: node server-mongodb.js
+    startCommand: node server.js
     envVars:
-      - key: PORT
-        value: 10000
       - key: NODE_ENV
         value: production
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
-      - key: MONGODB_URI
-        sync: false
-      - key: MONGODB_DB_NAME
-        value: boult-india
-      - key: JWT_SECRET
-        sync: false
+      - key: PORT
+        value: 5000
+    # CRITICAL: Persistent Disk for Orders
+    disk:
+      name: orders-storage
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

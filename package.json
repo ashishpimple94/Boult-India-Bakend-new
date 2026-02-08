@@ -4,15 +4,16 @@
   "description": "Boult India Backend with MongoDB and Razorpay Integration",
   "main": "server-mongodb.js",
   "scripts": {
-    "start": "node server-mongodb.js",
-    "start:mongodb": "node server-mongodb.js",
-    "dev": "nodemon server-mongodb.js",
+    "start": "node startup-check.js && node server.js",
+    "start:mongodb": "node startup-check.js && node server-mongodb.js",
+    "dev": "nodemon server.js",
     "dev:mongodb": "nodemon server-mongodb.js",
-    "start:json": "node server.js",
+    "start:json": "node startup-check.js && node server.js",
     "dev:json": "nodemon server.js",
     "migrate": "node scripts/migrateData.js",
     "build": "echo 'No build step required'",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "recover": "node recover-orders.js"
   },
   "engines": {
     "node": ">=14.0.0",
