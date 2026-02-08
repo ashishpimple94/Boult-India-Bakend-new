@@ -487,17 +487,38 @@ app.post('/api/save-order', (req, res) => {
       return res.status(400).json({ success: false, error: 'Order already exists' });
     }
 
-    // Create backup before saving new order
+    // CRITICAL: Create multiple backups for safety
     const backupDir = path.join(__dirname, 'backups', 'orders');
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true });
     }
-    const backupFile = path.join(backupDir, `orders-backup-${Date.now()}.json`);
-    fs.writeFileSync(backupFile, JSON.stringify(orders, null, 2));
-    console.log(`📦 Order backup created: ${backupFile}`);
+    
+    // Backup 1: Timestamped backup
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFile1 = path.join(backupDir, `orders-${timestamp}.json`);
+    fs.writeFileSync(backupFile1, JSON.stringify(orders, null, 2));
+    
+    // Backup 2: Daily backup (overwrites same day)
+    const dateStr = new Date().toISOString().split('T')[0];
+    const backupFile2 = path.join(backupDir, `orders-daily-${dateStr}.json`);
+    fs.writeFileSync(backupFile2, JSON.stringify(orders, null, 2));
+    
+    // Backup 3: Latest backup (always current)
+    const backupFile3 = path.join(backupDir, `orders-latest.json`);
+    fs.writeFileSync(backupFile3, JSON.stringify(orders, null, 2));
+    
+    console.log(`📦 Triple backup created for safety`);
 
+    // Add new order
     orders.push(order);
+    
+    // Save to main file
     fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2));
+    
+    // CRITICAL: Also save to permanent backup immediately
+    const permanentBackup = path.join(backupDir, `order-${order.id}.json`);
+    fs.writeFileSync(permanentBackup, JSON.stringify(order, null, 2));
+    console.log(`✅ Order ${order.id} saved with permanent backup`);
     
     // Send order confirmation email
     sendOrderConfirmation(order).then(result => {
@@ -510,7 +531,7 @@ app.post('/api/save-order', (req, res) => {
       console.error('❌ Email sending error:', err);
     });
     
-    res.json({ success: true, message: 'Order saved', orderId: order.id, timestamp: new Date().toISOString() });
+    res.json({ success: true, message: 'Order saved with backups', orderId: order.id, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error saving order:', error);
     res.status(500).json({ success: false, error: 'Failed to save order' });
