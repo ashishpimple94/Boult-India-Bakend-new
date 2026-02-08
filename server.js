@@ -117,6 +117,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// Debug endpoint to check environment variables (REMOVE AFTER TESTING)
+app.get('/debug/env', (req, res) => {
+  res.json({
+    HOSTINGER_EMAIL: process.env.HOSTINGER_EMAIL ? 'SET' : 'NOT SET',
+    HOSTINGER_PASSWORD: process.env.HOSTINGER_PASSWORD ? 'SET (***' + process.env.HOSTINGER_PASSWORD.slice(-3) + ')' : 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ============ ORDERS API ============
 
 // GET all orders
