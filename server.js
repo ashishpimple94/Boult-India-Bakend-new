@@ -233,7 +233,15 @@ app.delete('/api/delete-order', (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.find();
-    res.json({ success: true, products, count: products.length });
+    
+    // Transform products to include 'image' field for frontend compatibility
+    const productsWithImage = products.map(p => {
+      const product = p.toObject();
+      product.image = product.images?.[0] || product.image || '';
+      return product;
+    });
+    
+    res.json({ success: true, products: productsWithImage, count: productsWithImage.length });
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch products' });
@@ -243,21 +251,32 @@ app.get('/api/products', async (req, res) => {
 // POST add product
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.image;
+    
     const productData = {
       ...req.body,
       id: `PROD_${Date.now()}`,
       price: parseFloat(req.body.price),
-      image: req.file ? `/uploads/${req.file.filename}` : req.body.image,
+      originalPrice: req.body.originalPrice ? parseFloat(req.body.originalPrice) : undefined,
+      discount: req.body.discount ? parseFloat(req.body.discount) : undefined,
+      images: imageUrl ? [imageUrl] : [],
       createdAt: new Date().toISOString()
     };
+    
+    // Remove the old 'image' field if it exists
+    delete productData.image;
 
     const product = new Product(productData);
     await product.save();
     
+    // Return product with 'image' field for frontend compatibility
+    const productResponse = product.toObject();
+    productResponse.image = productResponse.images?.[0] || '';
+    
     res.status(201).json({ 
       success: true, 
       message: 'Product added', 
-      product 
+      product: productResponse 
     });
   } catch (error) {
     console.error('Error adding product:', error);
@@ -268,15 +287,28 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
 // PUT update product
 app.put('/api/products', async (req, res) => {
   try {
-    const { id, ...updates } = req.body;
+    const { id, image, ...updates } = req.body;
     
     if (!id) {
       return res.status(400).json({ success: false, error: 'Product ID required' });
     }
 
+    // Convert image to images array if provided
+    const updateData = {
+      ...updates,
+      price: parseFloat(updates.price),
+      originalPrice: updates.originalPrice ? parseFloat(updates.originalPrice) : undefined,
+      discount: updates.discount ? parseFloat(updates.discount) : undefined,
+      updatedAt: new Date()
+    };
+    
+    if (image) {
+      updateData.images = [image];
+    }
+
     const product = await Product.findOneAndUpdate(
       { id },
-      { ...updates, price: parseFloat(updates.price), updatedAt: new Date() },
+      updateData,
       { new: true }
     );
     
@@ -284,7 +316,11 @@ app.put('/api/products', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
-    res.json({ success: true, message: 'Product updated', product });
+    // Return product with 'image' field for frontend compatibility
+    const productResponse = product.toObject();
+    productResponse.image = productResponse.images?.[0] || '';
+
+    res.json({ success: true, message: 'Product updated', product: productResponse });
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(500).json({ success: false, error: 'Failed to update product' });
