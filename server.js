@@ -54,8 +54,20 @@ const productSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+const bannerSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  title: String,
+  image: String,
+  link: String,
+  active: { type: Boolean, default: true },
+  order: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
 const Order = mongoose.model('Order', orderSchema);
 const Product = mongoose.model('Product', productSchema);
+const Banner = mongoose.model('Banner', bannerSchema);
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -288,6 +300,117 @@ app.delete('/api/products', async (req, res) => {
   } catch (error) {
     console.error('Error deleting product:', error);
     res.status(500).json({ success: false, error: 'Failed to delete product' });
+  }
+});
+
+// ============ BANNERS API ============
+
+// GET all banners
+app.get('/api/banners', async (req, res) => {
+  try {
+    const banners = await Banner.find().sort({ order: 1, createdAt: -1 });
+    res.json({ success: true, banners, count: banners.length });
+  } catch (error) {
+    console.error('Error fetching banners:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch banners' });
+  }
+});
+
+// GET active banners only (for ecommerce site)
+app.get('/api/banners/active', async (req, res) => {
+  try {
+    const banners = await Banner.find({ active: true }).sort({ order: 1, createdAt: -1 });
+    res.json({ success: true, banners, count: banners.length });
+  } catch (error) {
+    console.error('Error fetching active banners:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch active banners' });
+  }
+});
+
+// POST add banner
+app.post('/api/banners', upload.single('image'), async (req, res) => {
+  try {
+    const bannerData = {
+      ...req.body,
+      id: `BANNER_${Date.now()}`,
+      image: req.file ? `/uploads/${req.file.filename}` : req.body.image,
+      active: req.body.active === 'true' || req.body.active === true,
+      order: parseInt(req.body.order) || 0,
+      createdAt: new Date().toISOString()
+    };
+
+    const banner = new Banner(bannerData);
+    await banner.save();
+    
+    console.log(`✅ Banner added: ${banner.id}`);
+    res.status(201).json({ 
+      success: true, 
+      message: 'Banner added successfully', 
+      banner 
+    });
+  } catch (error) {
+    console.error('Error adding banner:', error);
+    res.status(500).json({ success: false, error: 'Failed to add banner' });
+  }
+});
+
+// PUT update banner
+app.put('/api/banners', async (req, res) => {
+  try {
+    const { id, ...updates } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Banner ID required' });
+    }
+
+    // Convert active to boolean if it's a string
+    if (typeof updates.active === 'string') {
+      updates.active = updates.active === 'true';
+    }
+
+    // Convert order to number
+    if (updates.order) {
+      updates.order = parseInt(updates.order);
+    }
+
+    const banner = await Banner.findOneAndUpdate(
+      { id },
+      { ...updates, updatedAt: new Date() },
+      { new: true }
+    );
+    
+    if (!banner) {
+      return res.status(404).json({ success: false, error: 'Banner not found' });
+    }
+
+    console.log(`✅ Banner updated: ${banner.id}`);
+    res.json({ success: true, message: 'Banner updated successfully', banner });
+  } catch (error) {
+    console.error('Error updating banner:', error);
+    res.status(500).json({ success: false, error: 'Failed to update banner' });
+  }
+});
+
+// DELETE banner
+app.delete('/api/banners', async (req, res) => {
+  try {
+    const { id } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Banner ID required' });
+    }
+
+    const banner = await Banner.findOneAndDelete({ id });
+    
+    if (!banner) {
+      return res.status(404).json({ success: false, error: 'Banner not found' });
+    }
+
+    console.log(`✅ Banner deleted: ${banner.id}`);
+    res.json({ success: true, message: 'Banner deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting banner:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete banner' });
   }
 });
 
