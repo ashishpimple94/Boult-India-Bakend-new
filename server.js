@@ -1,251 +1,247 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const multer = require('multer');
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-const { sendOrderConfirmation } = require('./services/emailService');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+// Database connection
+const connectDB = require('./config/database');
+
+// Models
+const Product = require('./models/Product');
+const Order = require('./models/Order');
+const User = require('./models/User');
+
+// Razorpay
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
+
+// Email Service
+const { sendOrderConfirmation } = require('./services/emailService');
+
+// Utils
+const sanitizeUser = (userDoc) => {
+  if (!userDoc) re// Connect to MongoDB
+connectDB();
+
+// Seed default admin users
+const seedAdminUsers = async () => {
+  try {
+    const defaultAdmins = [
+      {
+        username: 'admin',
+        email: 'admin@boultindia.com',
+        firstName: 'Boult',
+        lastName: 'Admin',
+        password: 'admin123',
+        role: 'super_admin'
+      },
+      {
+        username: 'boultadmin',
+        email: 'support@boultindia.com',
+        firstName: 'Boult',
+        lastName: 'Support',
+        password: 'boult2026',
+        role: 'admin'
+      }
+    ];
+
+    for (const admin of defaultAdmins) {
+      const existing = await User.findOne({
+        $or: [
+          { username: admin.username.toLowerCase() },
+          { email: admin.email.toLowerCase() }
+        ]
+      });
+
+      if (!existing) {
+        const newAdmin = new User({
+          ...admin,
+          username: admin.username.toLowerCase(),
+          email: admin.email.toLowerCase(),
+          isActive: true
+        });
+        await newAdmin.save();
+        console.log(`✅ Seeded admin user: ${admin.username}`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to seed admin users:', error);
+  }
+};
+
+seedAdminUsers();
+
+// Security middleware
+app.use(helmet());
+app.use(compression());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// CORS configuration
+const corsOptions = {
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    process.env.ADMIN_URL || 'http://localhost:3001',
+    'http://localhost:3002',
+    'https://boult-india-ecommerce.vercel.app',
+    'https://boult-india-admin.vercel.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
-
-// Middleware
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000', 
-      'http://localhost:3001', 
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'https://boult-india-ecommerce.vercel.app',
-      'https://boult-india-admin.vercel.app',
-      // Hostinger domains
-      'https://boultindia.com',
-      'https://www.boultindia.com',
-      'https://login.boultindia.com',
-      'https://admin.boultindia.com',
-      'https://boult-india.hostinger.com',
-      'https://www.boult-india.hostinger.com',
-      // Add your actual Hostinger domain here
-      process.env.FRONTEND_URL,
-      process.env.ADMIN_URL
-    ].filter(Boolean);
-    
-    // Allow any localhost origin for development
-    if (origin.includes('localhost') || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Cache-Control',
-    'X-File-Name'
-  ],
-  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
-  optionsSuccessStatus: 200,
-  preflightContinue: false
-}));
-app.use(express.json());
-
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Serve public product images statically (for images like /Anti-Rust-Spray-500ml-Website-2.png)
-app.use('/product-images', express.static(path.join(__dirname, 'public')));
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Keep original filename with timestamp to avoid conflicts
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: function (req, file, cb) {
-    // Allow only image files
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-});
-
-// Data file paths
-const productsFile = path.join(__dirname, 'data', 'products.json');
-const ordersFile = path.join(__dirname, 'data', 'orders.json');
-const usersFile = path.join(__dirname, 'data', 'users.json');
-const enquiriesFile = path.join(__dirname, 'data', 'enquiries.json');
-const reviewsFile = path.join(__dirname, 'data', 'reviews.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(path.join(__dirname, 'data'))) {
-  fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
-}
-
-// Initialize files if they don't exist
-if (!fs.existsSync(productsFile)) {
-  fs.writeFileSync(productsFile, '[]');
-}
-if (!fs.existsSync(ordersFile)) {
-  fs.writeFileSync(ordersFile, '[]');
-}
-if (!fs.existsSync(usersFile)) {
-  fs.writeFileSync(usersFile, '[]');
-}
-if (!fs.existsSync(enquiriesFile)) {
-  fs.writeFileSync(enquiriesFile, '[]');
-}
-if (!fs.existsSync(reviewsFile)) {
-  fs.writeFileSync(reviewsFile, '[]');
-}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  console.error('❌ Error:', err);
+  res.status(500).json({ 
+    success: false, 
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message 
+  });
 });
 
-// POST upload image
-app.post('/api/upload-image', upload.single('image'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: 'No image file provided' });
-    }
-
-    const imageUrl = `/uploads/${req.file.filename}`;
-    
-    res.json({
-      success: true,
-      message: 'Image uploaded successfully',
-      imageUrl: imageUrl,
-      fullUrl: `${req.protocol}://${req.get('host')}${imageUrl}`,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).json({ success: false, error: 'Failed to upload image' });
-  }
-});
+// ==================== PRODUCT ROUTES ====================
 
 // GET all products
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
   try {
-    const data = fs.readFileSync(productsFile, 'utf-8');
-    const products = JSON.parse(data);
+    const { category, featured, onSale, search, limit, page } = req.query;
     
-    // Return products as-is with relative image paths
-    // Frontend will serve images from its own public folder
-    res.json({ success: true, products, timestamp: new Date().toISOString() });
+    // Build query
+    let query = { isActive: true };
+    
+    if (category && category !== 'all') {
+      query.category = category.toLowerCase();
+    }
+    
+    if (featured === 'true') {
+      query.featured = true;
+    }
+    
+    if (onSale === 'true') {
+      query.onSale = true;
+    }
+    
+    if (search) {
+      query.$text = { $search: search };
+    }
+    
+    // Pagination
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 50;
+    const skip = (pageNum - 1) * limitNum;
+    
+    const products = await Product.find(query)
+      .sort({ featured: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+    
+    const total = await Product.countDocuments(query);
+    
+    res.json({ 
+      success: true, 
+      products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
+      timestamp: new Date().toISOString() 
+    });
   } catch (error) {
-    console.error('Error reading products:', error);
+    console.error('Error fetching products:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch products' });
   }
 });
 
-// POST add new product
-app.post('/api/products', (req, res) => {
+// GET single product
+app.get('/api/products/:id', async (req, res) => {
   try {
-    const product = req.body;
+    const product = await Product.findOne({ id: req.params.id, isActive: true });
     
-    // Validate required fields
-    if (!product.name || !product.price) {
-      return res.status(400).json({ success: false, error: 'Product name and price are required' });
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
     }
-
-    const data = fs.readFileSync(productsFile, 'utf-8');
-    const products = JSON.parse(data);
     
-    // Generate unique ID
-    const newProduct = {
-      ...product,
-      id: `PROD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      price: parseFloat(product.price),
-      featured: product.featured || false,
-      onSale: product.onSale || false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    products.push(newProduct);
-    fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
-    
-    res.status(201).json({ 
-      success: true, 
-      message: 'Product added successfully', 
-      product: newProduct,
-      timestamp: new Date().toISOString() 
-    });
+    res.json({ success: true, product, timestamp: new Date().toISOString() });
   } catch (error) {
-    console.error('Error adding product:', error);
-    res.status(500).json({ success: false, error: 'Failed to add product' });
+    console.error('Error fetching product:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch product' });
   }
 });
 
-// PUT update product
-app.put('/api/products', (req, res) => {
+// CREATE product
+app.post('/api/products', async (req, res) => {
   try {
-    const { id, ...updates } = req.body;
-    
-    if (!id) {
-      return res.status(400).json({ success: false, error: 'Product ID is required' });
+    const productData = req.body;
+
+    if (!productData.id || !productData.name || !productData.price) {
+      return res.status(400).json({ success: false, error: 'Product id, name, and price are required' });
     }
 
-    const data = fs.readFileSync(productsFile, 'utf-8');
-    let products = JSON.parse(data);
-    
-    const productIndex = products.findIndex(p => p.id === id);
-    if (productIndex === -1) {
+    const existing = await Product.findOne({ id: productData.id });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Product with this id already exists' });
+    }
+
+    const product = await Product.create(productData);
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ success: false, error: 'Failed to create product' });
+  }
+});
+
+// UPDATE product
+app.put('/api/products', async (req, res) => {
+  try {
+    const productData = req.body;
+
+    if (!productData.id) {
+      return res.status(400).json({ success: false, error: 'Product id is required' });
+    }
+
+    const product = await Product.findOneAndUpdate(
+      { id: productData.id },
+      { ...productData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
       return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
-    // Update product
-    products[productIndex] = { 
-      ...products[productIndex], 
-      ...updates, 
-      price: parseFloat(updates.price || products[productIndex].price),
-      updatedAt: new Date().toISOString() 
-    };
-    
-    fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
-    
-    res.json({ 
-      success: true, 
-      message: 'Product updated successfully', 
-      product: products[productIndex],
-      timestamp: new Date().toISOString() 
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      product,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error updating product:', error);
@@ -254,30 +250,24 @@ app.put('/api/products', (req, res) => {
 });
 
 // DELETE product
-app.delete('/api/products', (req, res) => {
+app.delete('/api/products', async (req, res) => {
   try {
     const { id } = req.body;
-    
+
     if (!id) {
-      return res.status(400).json({ success: false, error: 'Product ID is required' });
+      return res.status(400).json({ success: false, error: 'Product id is required' });
     }
 
-    const data = fs.readFileSync(productsFile, 'utf-8');
-    let products = JSON.parse(data);
-    
-    const initialLength = products.length;
-    products = products.filter(product => product.id !== id);
-    
-    if (products.length === initialLength) {
+    const product = await Product.findOneAndDelete({ id });
+
+    if (!product) {
       return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
-    fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
-    
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Product deleted successfully',
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -285,278 +275,68 @@ app.delete('/api/products', (req, res) => {
   }
 });
 
-// ==================== SIMPLE AUTHENTICATION ENDPOINTS ====================
-
-// POST register user (simple version)
-app.post('/api/auth/register', (req, res) => {
-  try {
-    const { name, email, phone, password } = req.body;
-
-    // Validate required fields
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, error: 'Name, email, and password are required' });
-    }
-
-    // Validate email format
-    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
-    }
-
-    // Validate password length
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long' });
-    }
-
-    // Read existing users
-    const data = fs.readFileSync(usersFile, 'utf-8');
-    const users = JSON.parse(data);
-
-    // Check if user already exists
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-      return res.status(400).json({ success: false, error: 'User with this email already exists' });
-    }
-
-    // Create new user (simple password storage - in production use proper hashing)
-    const newUser = {
-      id: `USER_${Date.now()}`,
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      phone: phone || '',
-      password: password, // Simple storage for demo
-      role: 'customer',
-      addresses: [],
-      wishlist: [],
-      isActive: true,
-      emailVerified: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    // Save user
-    users.push(newUser);
-    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-
-    // Return user data (without password)
-    const { password: _, ...userWithoutPassword } = newUser;
-
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      user: userWithoutPassword,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error registering user:', error);
-    res.status(500).json({ success: false, error: 'Failed to register user' });
-  }
-});
-
-// POST login user (simple version)
-app.post('/api/auth/login', (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Validate required fields
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: 'Email and password are required' });
-    }
-
-    // Read users
-    const data = fs.readFileSync(usersFile, 'utf-8');
-    const users = JSON.parse(data);
-
-    // Find user
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid email or password' });
-    }
-
-    // Check if user is active
-    if (!user.isActive) {
-      return res.status(401).json({ success: false, error: 'Account is deactivated. Please contact support.' });
-    }
-
-    // Verify password (simple comparison - in production use proper verification)
-    if (user.password !== password) {
-      return res.status(401).json({ success: false, error: 'Invalid email or password' });
-    }
-
-    // Update last login
-    user.lastLogin = new Date().toISOString();
-    user.updatedAt = new Date().toISOString();
-    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-
-    // Return user data (without password)
-    const { password: _, ...userWithoutPassword } = user;
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      user: userWithoutPassword,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error logging in user:', error);
-    res.status(500).json({ success: false, error: 'Failed to login' });
-  }
-});
-
-// ==================== ADMIN AUTHENTICATION ENDPOINTS ====================
-
-// Default admin credentials
-const DEFAULT_ADMIN_USERS = [
-  {
-    id: 'ADMIN_001',
-    username: 'admin',
-    email: 'admin@boultindia.com',
-    password: 'admin123',
-    role: 'super_admin',
-    name: 'Boult Admin',
-    createdAt: '2026-01-30T00:00:00.000Z'
-  },
-  {
-    id: 'ADMIN_002',
-    username: 'boultadmin',
-    email: 'support@boultindia.com',
-    password: 'boult2026',
-    role: 'admin',
-    name: 'Boult Support',
-    createdAt: '2026-01-30T00:00:00.000Z'
-  }
-];
-
-// POST admin login
-app.post('/api/admin/login', (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    // Validate required fields
-    if (!username || !password) {
-      return res.status(400).json({ success: false, error: 'Username and password are required' });
-    }
-
-    // Find admin user
-    const adminUser = DEFAULT_ADMIN_USERS.find(u => 
-      (u.username === username || u.email === username) && u.password === password
-    );
-
-    if (!adminUser) {
-      return res.status(401).json({ success: false, error: 'Invalid username or password' });
-    }
-
-    // Return admin data (without password)
-    const { password: _, ...userWithoutPassword } = adminUser;
-    const authenticatedUser = {
-      ...userWithoutPassword,
-      lastLogin: new Date().toISOString()
-    };
-
-    res.json({
-      success: true,
-      message: 'Admin login successful',
-      user: authenticatedUser,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error in admin login:', error);
-    res.status(500).json({ success: false, error: 'Failed to login' });
-  }
-});
-
-// ==================== END AUTHENTICATION ENDPOINTS ====================
-
-// POST save order
-app.post('/api/save-order', (req, res) => {
-  try {
-    const order = req.body;
-    
-    // Validate order data
-    if (!order.id || !order.email || !order.amount) {
-      return res.status(400).json({ success: false, error: 'Missing required order fields' });
-    }
-
-    const data = fs.readFileSync(ordersFile, 'utf-8');
-    const orders = JSON.parse(data);
-    
-    // Check if order already exists
-    if (orders.find(o => o.id === order.id)) {
-      return res.status(400).json({ success: false, error: 'Order already exists' });
-    }
-
-    // CRITICAL: Create multiple backups for safety
-    const backupDir = path.join(__dirname, 'backups', 'orders');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
-    
-    // Backup 1: Timestamped backup
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupFile1 = path.join(backupDir, `orders-${timestamp}.json`);
-    fs.writeFileSync(backupFile1, JSON.stringify(orders, null, 2));
-    
-    // Backup 2: Daily backup (overwrites same day)
-    const dateStr = new Date().toISOString().split('T')[0];
-    const backupFile2 = path.join(backupDir, `orders-daily-${dateStr}.json`);
-    fs.writeFileSync(backupFile2, JSON.stringify(orders, null, 2));
-    
-    // Backup 3: Latest backup (always current)
-    const backupFile3 = path.join(backupDir, `orders-latest.json`);
-    fs.writeFileSync(backupFile3, JSON.stringify(orders, null, 2));
-    
-    console.log(`📦 Triple backup created for safety`);
-
-    // Add new order
-    orders.push(order);
-    
-    // Save to main file
-    fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2));
-    
-    // CRITICAL: Also save to permanent backup immediately
-    const permanentBackup = path.join(backupDir, `order-${order.id}.json`);
-    fs.writeFileSync(permanentBackup, JSON.stringify(order, null, 2));
-    console.log(`✅ Order ${order.id} saved with permanent backup`);
-    
-    // Send order confirmation email
-    sendOrderConfirmation(order).then(result => {
-      if (result.success) {
-        console.log('✅ Order confirmation email sent successfully');
-      } else {
-        console.error('❌ Failed to send order confirmation email:', result.error);
-      }
-    }).catch(err => {
-      console.error('❌ Email sending error:', err);
-    });
-    
-    res.json({ success: true, message: 'Order saved with backups', orderId: order.id, timestamp: new Date().toISOString() });
-  } catch (error) {
-    console.error('Error saving order:', error);
-    res.status(500).json({ success: false, error: 'Failed to save order' });
-  }
-});
+// ==================== ORDER ROUTES ====================
 
 // GET all orders
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', async (req, res) => {
   try {
-    const data = fs.readFileSync(ordersFile, 'utf-8');
-    const orders = JSON.parse(data);
-    res.json({ success: true, orders, count: orders.length, timestamp: new Date().toISOString() });
+    const { status, paymentMethod, email, limit, page, sortBy } = req.query;
+    
+    // Build query
+    let query = {};
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    if (paymentMethod && paymentMethod !== 'all') {
+      query.paymentMethod = paymentMethod;
+    }
+    
+    if (email) {
+      query.email = { $regex: email, $options: 'i' };
+    }
+    
+    // Pagination
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 50;
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Sorting
+    let sort = { createdAt: -1 }; // Default: newest first
+    if (sortBy === 'amount_asc') sort = { amount: 1 };
+    if (sortBy === 'amount_desc') sort = { amount: -1 };
+    if (sortBy === 'customer') sort = { customer: 1 };
+    
+    const orders = await Order.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+    
+    const total = await Order.countDocuments(query);
+    
+    res.json({ 
+      success: true, 
+      orders,
+      count: orders.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
+      timestamp: new Date().toISOString() 
+    });
   } catch (error) {
-    console.error('Error reading orders:', error);
+    console.error('Error fetching orders:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch orders' });
   }
 });
 
-// GET order by ID
-app.get('/api/orders/:orderId', (req, res) => {
+// GET single order
+app.get('/api/orders/:orderId', async (req, res) => {
   try {
-    const { orderId } = req.params;
-    const data = fs.readFileSync(ordersFile, 'utf-8');
-    const orders = JSON.parse(data);
-    const order = orders.find(o => o.id === orderId);
+    const order = await Order.findOne({ id: req.params.orderId });
     
     if (!order) {
       return res.status(404).json({ success: false, error: 'Order not found' });
@@ -569,8 +349,55 @@ app.get('/api/orders/:orderId', (req, res) => {
   }
 });
 
+// POST save order
+app.post('/api/save-order', async (req, res) => {
+  try {
+    const orderData = req.body;
+    
+    // Validate required fields
+    if (!orderData.id || !orderData.email || !orderData.amount) {
+      return res.status(400).json({ success: false, error: 'Missing required order fields' });
+    }
+
+    // Check if order already exists
+    const existingOrder = await Order.findOne({ id: orderData.id });
+    if (existingOrder) {
+      return res.status(400).json({ success: false, error: 'Order already exists' });
+    }
+
+    // Create new order
+    const order = new Order({
+      ...orderData,
+      paymentStatus: orderData.paymentId ? 'paid' : 'pending'
+    });
+    
+    await order.save();
+    
+    // Send order confirmation email
+    sendOrderConfirmation(orderData).then(result => {
+      if (result.success) {
+        console.log('✅ Order confirmation email sent successfully');
+      } else {
+        console.error('❌ Failed to send order confirmation email:', result.error);
+      }
+    }).catch(err => {
+      console.error('❌ Email sending error:', err);
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Order saved successfully', 
+      orderId: order.id, 
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error saving order:', error);
+    res.status(500).json({ success: false, error: 'Failed to save order' });
+  }
+});
+
 // PUT update order
-app.put('/api/update-order', (req, res) => {
+app.put('/api/update-order', async (req, res) => {
   try {
     const { orderId, ...updates } = req.body;
     
@@ -578,42 +405,30 @@ app.put('/api/update-order', (req, res) => {
       return res.status(400).json({ success: false, error: 'Order ID is required' });
     }
 
-    const data = fs.readFileSync(ordersFile, 'utf-8');
-    let orders = JSON.parse(data);
+    const order = await Order.findOneAndUpdate(
+      { id: orderId },
+      { ...updates, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
     
-    const orderIndex = orders.findIndex(o => o.id === orderId);
-    if (orderIndex === -1) {
+    if (!order) {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    // Create backup before updating
-    const backupDir = path.join(__dirname, 'backups', 'orders');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
-    const backupFile = path.join(backupDir, `orders-backup-${Date.now()}.json`);
-    fs.writeFileSync(backupFile, JSON.stringify(orders, null, 2));
-    console.log(`📦 Order backup created before update: ${backupFile}`);
-
-    orders[orderIndex] = { ...orders[orderIndex], ...updates, updatedAt: new Date().toISOString() };
-    fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2));
-    res.json({ success: true, message: 'Order updated', order: orders[orderIndex], timestamp: new Date().toISOString() });
+    res.json({ 
+      success: true, 
+      message: 'Order updated successfully', 
+      order, 
+      timestamp: new Date().toISOString() 
+    });
   } catch (error) {
     console.error('Error updating order:', error);
     res.status(500).json({ success: false, error: 'Failed to update order' });
   }
 });
 
-// DELETE order - DISABLED FOR SAFETY
-app.delete('/api/delete-order', (req, res) => {
-  // CRITICAL: Orders should NEVER be deleted, only marked as cancelled
-  return res.status(403).json({ 
-    success: false, 
-    error: 'Order deletion is disabled for data safety. Use cancel/update instead.',
-    message: 'Orders are permanent and cannot be deleted. Please update order status instead.'
-  });
-  
-  /* ORIGINAL CODE - KEPT FOR REFERENCE BUT DISABLED
+// DELETE order
+app.delete('/api/delete-order', async (req, res) => {
   try {
     const { orderId } = req.body;
     
@@ -621,52 +436,175 @@ app.delete('/api/delete-order', (req, res) => {
       return res.status(400).json({ success: false, error: 'Order ID is required' });
     }
 
-    const data = fs.readFileSync(ordersFile, 'utf-8');
-    let orders = JSON.parse(data);
+    const order = await Order.findOneAndDelete({ id: orderId });
     
-    const initialLength = orders.length;
-    
-    // Create backup before deleting
-    const backupDir = path.join(__dirname, 'backups', 'orders');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
-    const backupFile = path.join(backupDir, `orders-backup-before-delete-${Date.now()}.json`);
-    fs.writeFileSync(backupFile, JSON.stringify(orders, null, 2));
-    console.log(`📦 Order backup created before delete: ${backupFile}`);
-    
-    orders = orders.filter(order => order.id !== orderId);
-    
-    if (orders.length === initialLength) {
+    if (!order) {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2));
-    res.json({ success: true, message: 'Order deleted', timestamp: new Date().toISOString() });
+    res.json({ 
+      success: true, 
+      message: 'Order deleted successfully', 
+      timestamp: new Date().toISOString() 
+    });
   } catch (error) {
     console.error('Error deleting order:', error);
     res.status(500).json({ success: false, error: 'Failed to delete order' });
   }
-  */
 });
 
-// Razorpay: Create Order
+// ==================== AUTHENTICATION ROUTES ====================
+
+// User registration
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required' });
+    }
+
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long' });
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'User with this email already exists' });
+    }
+
+    const [firstName, ...rest] = name.trim().split(' ');
+    const lastName = rest.join(' ') || firstName;
+
+    const user = await User.create({
+      username: email.toLowerCase(),
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      phone: phone || '',
+      password,
+      role: 'customer',
+      isActive: true,
+      emailVerified: false
+    });
+
+    const safeUser = sanitizeUser(user);
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      user: safeUser,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ success: false, error: 'Failed to register user' });
+  }
+});
+
+// User login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({ success: false, error: 'Account is deactivated. Please contact support.' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const safeUser = sanitizeUser(user);
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: safeUser,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ success: false, error: 'Failed to login' });
+  }
+});
+
+// Admin login
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Username and password are required' });
+    }
+
+    const query = username.includes('@')
+      ? { email: username.toLowerCase() }
+      : { username: username.toLowerCase() };
+
+    const adminUser = await User.findOne({
+      ...query,
+      role: { $in: ['admin', 'super_admin'] }
+    });
+
+    if (!adminUser) {
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+
+    if (!adminUser.isActive) {
+      return res.status(401).json({ success: false, error: 'Admin account is deactivated. Please contact support.' });
+    }
+
+    const isMatch = await adminUser.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+
+    adminUser.lastLogin = new Date();
+    await adminUser.save();
+
+    const safeAdmin = sanitizeUser(adminUser);
+
+    res.json({
+      success: true,
+      message: 'Admin login successful',
+      user: safeAdmin,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error in admin login:', error);
+    res.status(500).json({ success: false, error: 'Failed to login' });
+  }
+});
+
+// ==================== RAZORPAY ROUTES ====================
+
+// Create Razorpay order
 app.post('/api/razorpay/create-order', async (req, res) => {
   try {
-    console.log('🔄 Creating Razorpay order:', req.body);
-    console.log('🔄 Request headers:', req.headers);
-    console.log('🔄 Request origin:', req.headers.origin);
-    
     const { amount, orderId, customer } = req.body;
 
     if (!amount || !orderId) {
-      console.error('❌ Missing required fields:', { amount, orderId });
       return res.status(400).json({ success: false, error: 'Missing amount or orderId' });
-    }
-
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      console.error('❌ Razorpay credentials not configured');
-      return res.status(500).json({ success: false, error: 'Payment gateway not configured' });
     }
 
     const options = {
@@ -679,32 +617,16 @@ app.post('/api/razorpay/create-order', async (req, res) => {
       }
     };
 
-    console.log('🔄 Razorpay order options:', options);
     const order = await razorpay.orders.create(options);
-    console.log('✅ Razorpay order created:', order.id);
-    
-    // Set CORS headers explicitly
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
     res.json({ success: true, order });
   } catch (error) {
-    console.error('❌ Error creating Razorpay order:', error);
-    
-    // Set CORS headers even for errors
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to create payment order',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error('Error creating Razorpay order:', error);
+    res.status(500).json({ success: false, error: 'Failed to create payment order' });
   }
 });
 
-// Razorpay: Verify Payment
-app.post('/api/razorpay/verify-payment', (req, res) => {
+// Verify Razorpay payment
+app.post('/api/razorpay/verify-payment', async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
@@ -730,7 +652,7 @@ app.post('/api/razorpay/verify-payment', (req, res) => {
   }
 });
 
-// Razorpay: Get Payment Details
+// Get payment details
 app.get('/api/razorpay/payment/:paymentId', async (req, res) => {
   try {
     const { paymentId } = req.params;
@@ -742,172 +664,68 @@ app.get('/api/razorpay/payment/:paymentId', async (req, res) => {
   }
 });
 
-// ==================== ENQUIRY ENDPOINTS ====================
+// ==================== ANALYTICS ROUTES ====================
 
-// POST submit enquiry
-app.post('/api/enquiries', (req, res) => {
+// GET order analytics
+app.get('/api/analytics/orders', async (req, res) => {
   try {
-    const enquiry = req.body;
+    const totalOrders = await Order.countDocuments();
+    const totalRevenue = await Order.aggregate([
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
     
-    if (!enquiry.name || !enquiry.email || !enquiry.message) {
-      return res.status(400).json({ success: false, error: 'Missing required fields' });
-    }
-
-    const data = fs.readFileSync(enquiriesFile, 'utf-8');
-    const enquiries = JSON.parse(data);
+    const ordersByStatus = await Order.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
     
-    const newEnquiry = {
-      ...enquiry,
-      id: `ENQ_${Date.now()}`,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-
-    enquiries.push(newEnquiry);
-    fs.writeFileSync(enquiriesFile, JSON.stringify(enquiries, null, 2));
+    const ordersByPaymentMethod = await Order.aggregate([
+      { $group: { _id: '$paymentMethod', count: { $sum: 1 } } }
+    ]);
     
-    res.status(201).json({ 
-      success: true, 
-      message: 'Enquiry submitted successfully', 
-      enquiry: newEnquiry,
-      timestamp: new Date().toISOString() 
+    const recentOrders = await Order.find()
+      .sort({ createdAt: -1 })
+      .limit(10);
+    
+    res.json({
+      success: true,
+      analytics: {
+        totalOrders,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        ordersByStatus,
+        ordersByPaymentMethod,
+        recentOrders
+      },
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error submitting enquiry:', error);
-    res.status(500).json({ success: false, error: 'Failed to submit enquiry' });
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch analytics' });
   }
 });
 
-// GET all enquiries (admin only)
-app.get('/api/enquiries', (req, res) => {
+// ==================== HEALTH CHECK ====================
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
   try {
-    const data = fs.readFileSync(enquiriesFile, 'utf-8');
-    const enquiries = JSON.parse(data);
-    res.json({ success: true, enquiries, count: enquiries.length, timestamp: new Date().toISOString() });
-  } catch (error) {
-    console.error('Error reading enquiries:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch enquiries' });
-  }
-});
-
-// ==================== REVIEW ENDPOINTS ====================
-
-// POST submit review
-app.post('/api/reviews', (req, res) => {
-  try {
-    const review = req.body;
-    
-    if (!review.productId || !review.rating || !review.comment) {
-      return res.status(400).json({ success: false, error: 'Missing required fields' });
-    }
-
-    const data = fs.readFileSync(reviewsFile, 'utf-8');
-    const reviews = JSON.parse(data);
-    
-    const newReview = {
-      ...review,
-      id: `REV_${Date.now()}`,
-      approved: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    reviews.push(newReview);
-    fs.writeFileSync(reviewsFile, JSON.stringify(reviews, null, 2));
-    
-    res.status(201).json({ 
-      success: true, 
-      message: 'Review submitted successfully', 
-      review: newReview,
-      timestamp: new Date().toISOString() 
-    });
-  } catch (error) {
-    console.error('Error submitting review:', error);
-    res.status(500).json({ success: false, error: 'Failed to submit review' });
-  }
-});
-
-// GET reviews for a product
-app.get('/api/reviews/:productId', (req, res) => {
-  try {
-    const { productId } = req.params;
-    const data = fs.readFileSync(reviewsFile, 'utf-8');
-    const allReviews = JSON.parse(data);
-    const reviews = allReviews.filter(r => r.productId === productId && r.approved);
-    
-    res.json({ success: true, reviews, count: reviews.length, timestamp: new Date().toISOString() });
-  } catch (error) {
-    console.error('Error fetching reviews:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch reviews' });
-  }
-});
-
-// GET all reviews (admin only)
-app.get('/api/reviews', (req, res) => {
-  try {
-    const data = fs.readFileSync(reviewsFile, 'utf-8');
-    const reviews = JSON.parse(data);
-    res.json({ success: true, reviews, count: reviews.length, timestamp: new Date().toISOString() });
-  } catch (error) {
-    console.error('Error reading reviews:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch reviews' });
-  }
-});
-
-// PUT approve review (admin only)
-app.put('/api/reviews/approve', (req, res) => {
-  try {
-    const { reviewId } = req.body;
-    
-    if (!reviewId) {
-      return res.status(400).json({ success: false, error: 'Review ID is required' });
-    }
-
-    const data = fs.readFileSync(reviewsFile, 'utf-8');
-    let reviews = JSON.parse(data);
-    
-    const reviewIndex = reviews.findIndex(r => r.id === reviewId);
-    if (reviewIndex === -1) {
-      return res.status(404).json({ success: false, error: 'Review not found' });
-    }
-
-    reviews[reviewIndex].approved = true;
-    reviews[reviewIndex].approvedAt = new Date().toISOString();
-    
-    fs.writeFileSync(reviewsFile, JSON.stringify(reviews, null, 2));
+    // Check MongoDB connection
+    const dbStatus = await Order.findOne().limit(1);
     
     res.json({ 
-      success: true, 
-      message: 'Review approved', 
-      review: reviews[reviewIndex],
-      timestamp: new Date().toISOString() 
+      status: 'Backend is running with MongoDB', 
+      database: 'Connected',
+      timestamp: new Date().toISOString(), 
+      port: PORT,
+      environment: process.env.NODE_ENV || 'development'
     });
   } catch (error) {
-    console.error('Error approving review:', error);
-    res.status(500).json({ success: false, error: 'Failed to approve review' });
+    res.status(500).json({
+      status: 'Backend running but database error',
+      database: 'Disconnected',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
-});
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'Backend is running with authentication', 
-    timestamp: new Date().toISOString(), 
-    port: PORT,
-    version: '2.0.0'
-  });
-});
-
-// Test endpoint for debugging CORS
-app.get('/api/test-connection', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.json({ 
-    success: true, 
-    message: 'Connection successful',
-    origin: req.headers.origin,
-    userAgent: req.headers['user-agent'],
-    timestamp: new Date().toISOString()
-  });
 });
 
 // 404 handler
@@ -915,7 +733,10 @@ app.use((req, res) => {
   res.status(404).json({ success: false, error: 'Endpoint not found' });
 });
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`🚀 Backend server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`📊 Database: MongoDB`);
 });
