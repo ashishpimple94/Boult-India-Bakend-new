@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ordersFile = path.join(__dirname, 'data', 'orders.json');
-const backupDir = path.join(__dirname, 'backups', 'orders');
+const backupDir = path.join(__dirname, 'data', 'backups', 'orders');
 
 console.log('🔍 Running startup check...\n');
 
