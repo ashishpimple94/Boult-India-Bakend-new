@@ -21,53 +21,11 @@ mongoose.connect(MONGODB_URI)
     process.exit(1);
   });
 
-// MongoDB Schemas
-const orderSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  customer: String,
-  email: String,
-  phone: String,
-  address: String,
-  city: String,
-  state: String,
-  pincode: String,
-  amount: Number,
-  paymentMethod: String,
-  razorpayOrderId: String,
-  razorpayPaymentId: String,
-  items: Array,
-  status: { type: String, default: 'pending' },
-  date: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-}, { timestamps: true });
-
-const productSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  name: String,
-  description: String,
-  price: Number,
-  image: String,
-  category: String,
-  featured: Boolean,
-  inStock: Boolean,
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const bannerSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  title: String,
-  image: String,
-  link: String,
-  active: { type: Boolean, default: true },
-  order: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-}, { timestamps: true });
-
-const Order = mongoose.model('Order', orderSchema);
-const Product = mongoose.model('Product', productSchema);
-const Banner = mongoose.model('Banner', bannerSchema);
+// Import Models
+const Order = require('./models/Order');
+const Product = require('./models/Product');
+const Banner = require('./models/Banner');
+const Review = require('./models/Review');
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -483,6 +441,113 @@ app.post('/api/contact', async (req, res) => {
   } catch (error) {
     console.error('Error processing contact form:', error);
     res.status(500).json({ success: false, error: 'Failed to process contact form' });
+  }
+});
+
+// ============ REVIEWS API ============
+
+// GET reviews for a product
+app.get('/api/reviews/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const reviews = await Review.find({ 
+      productId, 
+      isApproved: true 
+    }).sort({ createdAt: -1 });
+    
+    res.json({ 
+      success: true, 
+      reviews, 
+      count: reviews.length 
+    });
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch reviews' });
+  }
+});
+
+// POST add review
+app.post('/api/reviews', async (req, res) => {
+  try {
+    const { productId, customerName, email, rating, title, comment } = req.body;
+    
+    if (!productId || !customerName || !email || !rating || !title || !comment) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, error: 'Rating must be between 1 and 5' });
+    }
+
+    const reviewData = {
+      id: `REVIEW_${Date.now()}`,
+      productId,
+      customerName,
+      email,
+      rating: parseInt(rating),
+      title,
+      comment,
+      isApproved: true // Auto-approve for now
+    };
+
+    const review = new Review(reviewData);
+    await review.save();
+    
+    // Update product rating and review count
+    const reviews = await Review.find({ productId, isApproved: true });
+    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+    
+    await Product.findOneAndUpdate(
+      { id: productId },
+      { 
+        rating: Math.round(avgRating * 10) / 10, // Round to 1 decimal
+        reviews: reviews.length 
+      }
+    );
+    
+    console.log(`✅ Review added for product ${productId} by ${customerName}`);
+    res.status(201).json({ 
+      success: true, 
+      message: 'Review submitted successfully', 
+      review 
+    });
+  } catch (error) {
+    console.error('Error adding review:', error);
+    res.status(500).json({ success: false, error: 'Failed to add review' });
+  }
+});
+
+// DELETE review (admin only - add auth later)
+app.delete('/api/reviews/:reviewId', async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    
+    const review = await Review.findOneAndDelete({ id: reviewId });
+    
+    if (!review) {
+      return res.status(404).json({ success: false, error: 'Review not found' });
+    }
+
+    // Update product rating and review count
+    const reviews = await Review.find({ productId: review.productId, isApproved: true });
+    const avgRating = reviews.length > 0 
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+      : 0;
+    
+    await Product.findOneAndUpdate(
+      { id: review.productId },
+      { 
+        rating: Math.round(avgRating * 10) / 10,
+        reviews: reviews.length 
+      }
+    );
+
+    console.log(`✅ Review deleted: ${reviewId}`);
+    res.json({ success: true, message: 'Review deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting review:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete review' });
   }
 });
 
