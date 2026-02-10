@@ -82,6 +82,11 @@ const orderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  shippingCharges: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   paymentMethod: {
     type: String,
     required: true,
