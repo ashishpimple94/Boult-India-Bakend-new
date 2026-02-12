@@ -137,4 +137,13 @@ orderSchema.virtual('orderTotal').get(function() {
   return this.items.reduce((total, item) => total + (item.price * item.quantity), 0);
 });
 
+// Virtual for backward compatibility - map 'date' to 'orderDate'
+orderSchema.virtual('date').get(function() {
+  return this.orderDate;
+});
+
+// Ensure virtuals are included in JSON
+orderSchema.set('toJSON', { virtuals: true });
+orderSchema.set('toObject', { virtuals: true });
+
 module.exports = mongoose.model('Order', orderSchema);
