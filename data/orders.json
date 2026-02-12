@@ -96,5 +96,29 @@
     "date": "2026-02-10T05:25:19.914Z",
     "updatedAt": "2026-02-10T05:26:44.265Z",
     "shippingCharges": 122
+  },
+  {
+    "id": "ORDER_1770914162837",
+    "customer": "ashish pimple",
+    "email": "ashishpimple94@gmail.com",
+    "phone": "09090385555",
+    "address": "B1, At Post Ghatnandur Tq-Ambejogai Dist beed, Pune, Maharashtra - 431517",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "pincode": "431517",
+    "amount": 205,
+    "paymentMethod": "cod",
+    "items": [
+      {
+        "productId": "brake-parts-clean",
+        "name": "Brake Parts Clean",
+        "variant": "Default",
+        "quantity": 1,
+        "price": 205,
+        "image": "/Brake-Parts-front-clean.png"
+      }
+    ],
+    "status": "pending",
+    "orderDate": "2026-02-12T16:36:02.837Z"
   }
 ]
