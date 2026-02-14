@@ -110,6 +110,14 @@ const orderSchema = new mongoose.Schema({
   items: [orderItemSchema],
   notes: String,
   trackingNumber: String,
+  deliveryDate: {
+    type: String,
+    default: ''
+  },
+  courierPartner: {
+    type: String,
+    default: ''
+  },
   orderDate: {
     type: Date,
     default: Date.now
