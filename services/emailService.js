@@ -1,26 +1,60 @@
 const nodemailer = require('nodemailer');
 
-// Hostinger SMTP Configuration
+// Email SMTP Configuration - Try Gmail first, fallback to Hostinger
 const createTransporter = () => {
+  // Check if Gmail credentials are properly set (both must exist and not be empty)
+  const hasGmailCredentials = process.env.GMAIL_USER && 
+                               process.env.GMAIL_APP_PASSWORD && 
+                               process.env.GMAIL_USER.trim() !== '' && 
+                               process.env.GMAIL_APP_PASSWORD.trim() !== '';
+  
+  // Try Gmail SMTP if configured
+  if (hasGmailCredentials) {
+    console.log('📧 Using Gmail SMTP');
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
+      }
+    });
+  }
+  
+  // Check if Hostinger credentials are set
+  const hasHostingerCredentials = process.env.HOSTINGER_EMAIL && 
+                                   process.env.HOSTINGER_PASSWORD &&
+                                   process.env.HOSTINGER_EMAIL.trim() !== '' &&
+                                   process.env.HOSTINGER_PASSWORD.trim() !== '';
+  
+  if (!hasHostingerCredentials) {
+    throw new Error('No email credentials configured. Please set either Gmail or Hostinger SMTP credentials in .env file');
+  }
+  
+  // Use Hostinger SMTP
+  console.log('📧 Using Hostinger SMTP');
   return nodemailer.createTransport({
     host: 'smtp.hostinger.com',
     port: 465,
-    secure: true, // use SSL
+    secure: true,
     auth: {
-      user: process.env.HOSTINGER_EMAIL || 'orders@boultindia.com',
-      pass: process.env.HOSTINGER_PASSWORD || 'Hrishi@123*'
+      user: process.env.HOSTINGER_EMAIL,
+      pass: process.env.HOSTINGER_PASSWORD
     }
   });
 };
 
-// Send Order Confirmation Email via Gmail SMTP
+// Send Order Confirmation Email
 const sendOrderConfirmation = async (orderData) => {
   try {
     const { customer, email, id, amount, items, address, city, state, pincode, phone } = orderData;
     
-    console.log('📧 Sending email via Hostinger SMTP...');
+    console.log('📧 Attempting to send order confirmation email...');
     console.log('📦 Order ID:', id);
     console.log('📧 To:', email);
+    console.log('🔧 GMAIL_USER:', process.env.GMAIL_USER ? 'SET' : 'NOT SET');
+    console.log('🔧 GMAIL_APP_PASSWORD:', process.env.GMAIL_APP_PASSWORD ? 'SET' : 'NOT SET');
+    console.log('🔧 HOSTINGER_EMAIL:', process.env.HOSTINGER_EMAIL ? 'SET' : 'NOT SET');
+    console.log('🔧 HOSTINGER_PASSWORD:', process.env.HOSTINGER_PASSWORD ? 'SET' : 'NOT SET');
     
     // Build items HTML
     let itemsHTML = '';
@@ -57,6 +91,7 @@ const sendOrderConfirmation = async (orderData) => {
             <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 10px;'>
                 <tr>
                     <td style='background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;'>
+                        <img src='https://i.ibb.co/ZfQXqYZ/logo1.png' alt='Boult India' style='height: 60px; width: auto; margin-bottom: 15px;' />
                         <h1 style='color: #ffffff; margin: 0; font-size: 28px;'>Order Confirmed! 🎉</h1>
                         <p style='color: #ffffff; margin: 10px 0 0 0;'>Thank you for your order</p>
                     </td>
@@ -110,6 +145,7 @@ const sendOrderConfirmation = async (orderData) => {
                 </tr>
                 <tr>
                     <td style='background-color: #f9f9f9; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;'>
+                        <img src='https://i.ibb.co/ZfQXqYZ/logo1.png' alt='Boult India' style='height: 40px; width: auto; margin-bottom: 10px; opacity: 0.7;' />
                         <p style='margin: 0; color: #999; font-size: 12px;'>© 2024 Boult India. All rights reserved.</p>
                     </td>
                 </tr>
@@ -124,11 +160,12 @@ const sendOrderConfirmation = async (orderData) => {
     const transporter = createTransporter();
     
     // Email options
+    const fromEmail = process.env.GMAIL_USER || process.env.HOSTINGER_EMAIL || 'orders@boultindia.com';
     const mailOptions = {
-      from: '"Boult India Orders" <orders@boultindia.com>',
+      from: `"Boult India Orders" <${fromEmail}>`,
       to: email,
       cc: 'vtechmultisolutions@gmail.com',
-      replyTo: 'orders@boultindia.com',
+      replyTo: fromEmail,
       subject: `Order Confirmation - ${id} | Boult India`,
       html: emailHTML
     };
@@ -151,97 +188,93 @@ const sendOrderConfirmation = async (orderData) => {
 
 // Send Contact Form Email
 async function sendContactEmail(contactData) {
-  try {
-    const { name, email, phone, enquiryType, subject, message } = contactData;
-    
-    console.log('📧 Sending contact email via Hostinger SMTP...');
-    console.log('📧 From:', name, email);
-    console.log('📋 Type:', enquiryType);
-    
-    const enquiryTypeLabels = {
-      general: 'General Inquiry',
-      distributorship: 'Enquiry for Distributorship',
-      orders: 'Contact for Orders Query',
-      technical: 'Technical Support',
-      bulk: 'Bulk Orders'
-    };
+  const { name, email, phone, enquiryType, subject, message } = contactData;
+  
+  const enquiryTypeLabels = {
+    general: 'General Inquiry',
+    distributorship: 'Enquiry for Distributorship',
+    orders: 'Contact for Orders Query',
+    technical: 'Technical Support',
+    bulk: 'Bulk Orders'
+  };
 
-    // Create transporter
-    const transporter = createTransporter();
+  // Create transporter
+  const transporter = createTransporter();
 
-    const mailOptions = {
-      from: `"Boult India Contact" <${process.env.HOSTINGER_EMAIL}>`,
-      to: 'vtechmultisolutions@gmail.com',
-      cc: process.env.HOSTINGER_EMAIL,
-      subject: `[${enquiryTypeLabels[enquiryType] || 'Contact Form'}] ${subject}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-            .info-row { margin: 15px 0; padding: 15px; background: white; border-left: 4px solid #f97316; border-radius: 5px; }
-            .label { font-weight: bold; color: #f97316; margin-bottom: 5px; }
-            .value { color: #333; }
-            .message-box { background: white; padding: 20px; border-radius: 5px; margin-top: 20px; border: 1px solid #e5e7eb; }
-            .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #6b7280; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1 style="margin: 0;">📧 New Contact Form Submission</h1>
-              <p style="margin: 10px 0 0 0; opacity: 0.9;">${enquiryTypeLabels[enquiryType] || 'Contact Form'}</p>
+  const mailOptions = {
+    from: `"Boult India Contact" <${process.env.HOSTINGER_EMAIL}>`,
+    to: 'vtechmultisolutions@gmail.com',
+    cc: process.env.HOSTINGER_EMAIL,
+    subject: `[${enquiryTypeLabels[enquiryType] || 'Contact Form'}] ${subject}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .info-row { margin: 15px 0; padding: 15px; background: white; border-left: 4px solid #f97316; border-radius: 5px; }
+          .label { font-weight: bold; color: #f97316; margin-bottom: 5px; }
+          .value { color: #333; }
+          .message-box { background: white; padding: 20px; border-radius: 5px; margin-top: 20px; border: 1px solid #e5e7eb; }
+          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0;">📧 New Contact Form Submission</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">${enquiryTypeLabels[enquiryType] || 'Contact Form'}</p>
+          </div>
+          
+          <div class="content">
+            <div class="info-row">
+              <div class="label">👤 Name:</div>
+              <div class="value">${name}</div>
             </div>
             
-            <div class="content">
-              <div class="info-row">
-                <div class="label">👤 Name:</div>
-                <div class="value">${name}</div>
-              </div>
-              
-              <div class="info-row">
-                <div class="label">📧 Email:</div>
-                <div class="value"><a href="mailto:${email}" style="color: #f97316;">${email}</a></div>
-              </div>
-              
-              ${phone ? `
-              <div class="info-row">
-                <div class="label">📱 Phone:</div>
-                <div class="value"><a href="tel:${phone}" style="color: #f97316;">${phone}</a></div>
-              </div>
-              ` : ''}
-              
-              <div class="info-row">
-                <div class="label">📋 Enquiry Type:</div>
-                <div class="value">${enquiryTypeLabels[enquiryType] || 'General Inquiry'}</div>
-              </div>
-              
-              <div class="info-row">
-                <div class="label">📌 Subject:</div>
-                <div class="value">${subject}</div>
-              </div>
-              
-              <div class="message-box">
-                <div class="label">💬 Message:</div>
-                <div class="value" style="margin-top: 10px; white-space: pre-wrap;">${message}</div>
-              </div>
-              
-              <div class="footer">
-                <p><strong>Boult India</strong></p>
-                <p>This email was sent from the contact form on boultindia.com</p>
-                <p>Received on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
-              </div>
+            <div class="info-row">
+              <div class="label">📧 Email:</div>
+              <div class="value"><a href="mailto:${email}" style="color: #f97316;">${email}</a></div>
+            </div>
+            
+            ${phone ? `
+            <div class="info-row">
+              <div class="label">📱 Phone:</div>
+              <div class="value"><a href="tel:${phone}" style="color: #f97316;">${phone}</a></div>
+            </div>
+            ` : ''}
+            
+            <div class="info-row">
+              <div class="label">📋 Enquiry Type:</div>
+              <div class="value">${enquiryTypeLabels[enquiryType] || 'General Inquiry'}</div>
+            </div>
+            
+            <div class="info-row">
+              <div class="label">📌 Subject:</div>
+              <div class="value">${subject}</div>
+            </div>
+            
+            <div class="message-box">
+              <div class="label">💬 Message:</div>
+              <div class="value" style="margin-top: 10px; white-space: pre-wrap;">${message}</div>
+            </div>
+            
+            <div class="footer">
+              <p><strong>Boult India</strong></p>
+              <p>This email was sent from the contact form on boultindia.com</p>
+              <p>Received on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
             </div>
           </div>
-        </body>
-        </html>
-      `
-    };
+        </div>
+      </body>
+      </html>
+    `
+  };
 
+  try {
     await transporter.sendMail(mailOptions);
     console.log(`✅ Contact email sent to vtechmultisolutions@gmail.com`);
     return { success: true };
