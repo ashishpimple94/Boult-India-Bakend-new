@@ -118,6 +118,18 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  processingDateTime: {
+    type: Date,
+    default: null
+  },
+  dispatchDateTime: {
+    type: Date,
+    default: null
+  },
+  deliveredDateTime: {
+    type: Date,
+    default: null
+  },
   orderDate: {
     type: Date,
     default: Date.now
