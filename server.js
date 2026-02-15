@@ -254,27 +254,27 @@ app.put('/api/products', async (req, res) => {
     // Build update data - only include fields that are actually provided
     const updateData = {};
     
-    // Handle basic fields
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.category !== undefined) updateData.category = updates.category;
-    if (updates.featured !== undefined) updateData.featured = updates.featured;
-    if (updates.onSale !== undefined) updateData.onSale = updates.onSale;
-    if (updates.stock !== undefined) updateData.stock = updates.stock;
-    if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+    // Handle basic fields - check if they exist in updates object
+    if ('name' in updates) updateData.name = updates.name;
+    if ('description' in updates) updateData.description = updates.description;
+    if ('category' in updates) updateData.category = updates.category;
+    if ('featured' in updates) updateData.featured = updates.featured;
+    if ('onSale' in updates) updateData.onSale = updates.onSale;
+    if ('stock' in updates) updateData.stock = updates.stock;
+    if ('isActive' in updates) updateData.isActive = updates.isActive;
     
     // Handle numeric fields
-    if (updates.price !== undefined) updateData.price = parseFloat(updates.price);
-    if (updates.originalPrice !== undefined) updateData.originalPrice = parseFloat(updates.originalPrice);
-    if (updates.discount !== undefined) updateData.discount = parseFloat(updates.discount);
-    if (updates.rating !== undefined) updateData.rating = parseFloat(updates.rating);
-    if (updates.reviews !== undefined) updateData.reviews = parseInt(updates.reviews);
+    if ('price' in updates) updateData.price = parseFloat(updates.price);
+    if ('originalPrice' in updates) updateData.originalPrice = updates.originalPrice ? parseFloat(updates.originalPrice) : null;
+    if ('discount' in updates) updateData.discount = updates.discount ? parseFloat(updates.discount) : null;
+    if ('rating' in updates) updateData.rating = parseFloat(updates.rating);
+    if ('reviews' in updates) updateData.reviews = parseInt(updates.reviews);
     
     // Handle array fields - only update if provided
-    if (updates.variants !== undefined) updateData.variants = updates.variants;
-    if (updates.directions !== undefined) updateData.directions = updates.directions;
-    if (updates.benefits !== undefined) updateData.benefits = updates.benefits;
-    if (updates.tags !== undefined) updateData.tags = updates.tags;
+    if ('variants' in updates) updateData.variants = updates.variants;
+    if ('directions' in updates) updateData.directions = updates.directions;
+    if ('benefits' in updates) updateData.benefits = updates.benefits;
+    if ('tags' in updates) updateData.tags = updates.tags;
     
     // Handle image
     if (image) {
