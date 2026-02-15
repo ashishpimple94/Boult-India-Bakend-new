@@ -56,101 +56,172 @@ const sendOrderConfirmation = async (orderData) => {
     console.log('🔧 HOSTINGER_EMAIL:', process.env.HOSTINGER_EMAIL ? 'SET' : 'NOT SET');
     console.log('🔧 HOSTINGER_PASSWORD:', process.env.HOSTINGER_PASSWORD ? 'SET' : 'NOT SET');
     
-    // Build items HTML
+    // Build items HTML with better styling
     let itemsHTML = '';
-    items.forEach(item => {
+    items.forEach((item, index) => {
       const itemName = item.name || '';
       const itemVariant = item.variant || 'Default';
       const itemQty = item.quantity || 1;
       const itemPrice = (item.price || 0).toFixed(2);
       const itemTotal = ((item.price || 0) * itemQty).toFixed(2);
+      const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
       
       itemsHTML += `
-        <tr>
-          <td style='padding: 10px; border-bottom: 1px solid #eee;'>
-            <strong>${itemName}</strong><br>
-            <small style='color: #666;'>Variant: ${itemVariant}</small>
+        <tr style='background-color: ${bgColor};'>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb;'>
+            <strong style='color: #333; font-size: 14px;'>${itemName}</strong><br>
+            <small style='color: #6b7280; font-size: 12px;'>Variant: <span style='background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600;'>${itemVariant}</span></small>
           </td>
-          <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: center;'>${itemQty}</td>
-          <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>₹${itemPrice}</td>
-          <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'><strong>₹${itemTotal}</strong></td>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #333; font-weight: 600; font-size: 14px;'>${itemQty}</td>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #6b7280; font-size: 14px;'>₹${itemPrice}</td>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #ff6b35; font-weight: bold; font-size: 15px;'>₹${itemTotal}</td>
         </tr>
       `;
     });
     
     const formattedAmount = amount.toFixed(2);
     
-    // Email HTML
+    // Email HTML with Boult India Logo and Professional Structure
     const emailHTML = `
 <!DOCTYPE html>
 <html>
-<head><meta charset='UTF-8'></head>
-<body style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;'>
-    <table width='100%' cellpadding='0' cellspacing='0' style='background-color: #f5f5f5; padding: 20px;'>
-        <tr><td align='center'>
-            <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 10px;'>
-                <tr>
-                    <td style='background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;'>
-                        <img src='https://i.ibb.co/ZfQXqYZ/logo1.png' alt='Boult India' style='height: 60px; width: auto; margin-bottom: 15px;' />
-                        <h1 style='color: #ffffff; margin: 0; font-size: 28px;'>Order Confirmed! 🎉</h1>
-                        <p style='color: #ffffff; margin: 10px 0 0 0;'>Thank you for your order</p>
-                    </td>
-                </tr>
-                <tr>
-                    <td style='padding: 30px;'>
-                        <p style='font-size: 16px; color: #333; margin: 0 0 20px 0;'>Hi <strong>${customer}</strong>,</p>
-                        <p style='font-size: 14px; color: #666; margin: 0 0 20px 0;'>Your order has been successfully placed.</p>
-                        
-                        <table width='100%' cellpadding='10' style='background-color: #f9f9f9; border-radius: 8px; margin-bottom: 20px;'>
-                            <tr>
-                                <td style='padding: 15px;'>
-                                    <p style='margin: 0; color: #666; font-size: 12px;'>ORDER ID</p>
-                                    <p style='margin: 5px 0 0 0; color: #333; font-size: 18px; font-weight: bold;'>${id}</p>
-                                </td>
-                                <td style='padding: 15px; text-align: right;'>
-                                    <p style='margin: 0; color: #666; font-size: 12px;'>TOTAL AMOUNT</p>
-                                    <p style='margin: 5px 0 0 0; color: #ff6b35; font-size: 24px; font-weight: bold;'>₹${formattedAmount}</p>
-                                </td>
-                            </tr>
-                        </table>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Order Confirmation - Boult India</title>
+</head>
+<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f4;'>
+    <table width='100%' cellpadding='0' cellspacing='0' style='background-color: #f4f4f4; padding: 20px 0;'>
+        <tr>
+            <td align='center'>
+                <!-- Main Container -->
+                <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;'>
+                    
+                    <!-- Header with Logo and Gradient -->
+                    <tr>
+                        <td style='background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); padding: 40px 30px; text-align: center;'>
+                            <!-- Boult India Logo -->
+                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 70px; width: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;' />
+                            <h1 style='color: #ffffff; margin: 0; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.2);'>Order Confirmed! 🎉</h1>
+                            <p style='color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;'>Thank you for choosing Boult India</p>
+                        </td>
+                    </tr>
 
-                        <h3 style='color: #333; margin: 30px 0 15px 0;'>Order Items</h3>
-                        <table width='100%' cellpadding='0' cellspacing='0' style='border: 1px solid #eee;'>
-                            <thead>
-                                <tr style='background-color: #f9f9f9;'>
-                                    <th style='padding: 12px; text-align: left; font-size: 12px;'>PRODUCT</th>
-                                    <th style='padding: 12px; text-align: center; font-size: 12px;'>QTY</th>
-                                    <th style='padding: 12px; text-align: right; font-size: 12px;'>PRICE</th>
-                                    <th style='padding: 12px; text-align: right; font-size: 12px;'>TOTAL</th>
+                    <!-- Greeting -->
+                    <tr>
+                        <td style='padding: 30px 30px 20px 30px;'>
+                            <p style='font-size: 18px; color: #333; margin: 0 0 10px 0;'>Hi <strong style='color: #ff6b35;'>${customer}</strong>,</p>
+                            <p style='font-size: 15px; color: #666; margin: 0; line-height: 1.6;'>Your order has been successfully placed and is being processed. We'll notify you once it's shipped!</p>
+                        </td>
+                    </tr>
+
+                    <!-- Order Summary Box -->
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <table width='100%' cellpadding='0' cellspacing='0' style='background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 100%); border-radius: 10px; border: 2px solid #ff6b35; overflow: hidden;'>
+                                <tr>
+                                    <td style='padding: 20px;'>
+                                        <table width='100%'>
+                                            <tr>
+                                                <td style='width: 50%; vertical-align: top;'>
+                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Order ID</p>
+                                                    <p style='margin: 5px 0 0 0; color: #333; font-size: 20px; font-weight: bold;'>#${id}</p>
+                                                </td>
+                                                <td style='width: 50%; text-align: right; vertical-align: top;'>
+                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Total Amount</p>
+                                                    <p style='margin: 5px 0 0 0; color: #ff6b35; font-size: 28px; font-weight: bold;'>₹${formattedAmount}</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>${itemsHTML}</tbody>
-                        </table>
+                            </table>
+                        </td>
+                    </tr>
 
-                        <h3 style='color: #333; margin: 30px 0 15px 0;'>Delivery Address</h3>
-                        <div style='background-color: #f9f9f9; padding: 15px; border-radius: 8px; border-left: 4px solid #ff6b35;'>
-                            <p style='margin: 0; color: #333; font-size: 14px; line-height: 1.6;'>
-                                <strong>${customer}</strong><br>
-                                ${address}<br>
-                                ${city}, ${state} - ${pincode}<br>
-                                Phone: ${phone}
-                            </p>
-                        </div>
+                    <!-- Order Items Section -->
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #ff6b35; padding-bottom: 10px;'>📦 Order Items</h3>
+                            <table width='100%' cellpadding='0' cellspacing='0' style='border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>
+                                <thead>
+                                    <tr style='background: linear-gradient(135deg, #333 0%, #555 100%);'>
+                                        <th style='padding: 14px 12px; text-align: left; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Product</th>
+                                        <th style='padding: 14px 12px; text-align: center; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Qty</th>
+                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Price</th>
+                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${itemsHTML}</tbody>
+                            </table>
+                        </td>
+                    </tr>
 
-                        <div style='margin-top: 30px; text-align: center;'>
-                            <a href='https://boultindia.com/track-order' style='display: inline-block; background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;'>Track Order</a>
-                            <a href='https://boultindia.com/order-confirmation?orderId=${id}' style='display: inline-block; background-color: #333; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Download Invoice</a>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td style='background-color: #f9f9f9; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;'>
-                        <img src='https://i.ibb.co/ZfQXqYZ/logo1.png' alt='Boult India' style='height: 40px; width: auto; margin-bottom: 10px; opacity: 0.7;' />
-                        <p style='margin: 0; color: #999; font-size: 12px;'>© 2024 Boult India. All rights reserved.</p>
-                    </td>
-                </tr>
-            </table>
-        </td></tr>
+                    <!-- Delivery Address Section -->
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #ff6b35; padding-bottom: 10px;'>🚚 Delivery Address</h3>
+                            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+                                <p style='margin: 0; color: #333; font-size: 15px; line-height: 1.8;'>
+                                    <strong style='color: #0ea5e9; font-size: 16px;'>${customer}</strong><br>
+                                    ${address}<br>
+                                    ${city}, ${state} - ${pincode}<br>
+                                    📱 Phone: <strong>${phone}</strong>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Action Buttons -->
+                    <tr>
+                        <td style='padding: 0 30px 30px 30px; text-align: center;'>
+                            <table width='100%' cellpadding='0' cellspacing='0'>
+                                <tr>
+                                    <td style='padding: 10px;'>
+                                        <a href='https://boultindia.com/track-order' style='display: block; background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(255,107,53,0.3); transition: all 0.3s;'>🔍 Track Your Order</a>
+                                    </td>
+                                    <td style='padding: 10px;'>
+                                        <a href='https://boultindia.com/account' style='display: block; background: linear-gradient(135deg, #333 0%, #555 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: all 0.3s;'>📄 View Invoice</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Support Section -->
+                    <tr>
+                        <td style='padding: 0 30px 30px 30px;'>
+                            <div style='background-color: #f9fafb; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;'>
+                                <p style='margin: 0 0 10px 0; color: #666; font-size: 14px;'>Need help with your order?</p>
+                                <p style='margin: 0; color: #333; font-size: 14px;'>
+                                    📧 Email: <a href='mailto:support@boultindia.com' style='color: #ff6b35; text-decoration: none; font-weight: 600;'>support@boultindia.com</a><br>
+                                    📞 Phone: <strong>+91-XXXXXXXXXX</strong>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style='background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 30px; text-align: center;'>
+                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 50px; width: auto; margin-bottom: 15px; opacity: 0.9; display: block; margin-left: auto; margin-right: auto;' />
+                            <p style='margin: 0 0 10px 0; color: #d1d5db; font-size: 14px; font-weight: 600;'>Boult India - Premium Vehicle Care Products</p>
+                            <p style='margin: 0 0 15px 0; color: #9ca3af; font-size: 12px;'>Quality products for your vehicle's care and maintenance</p>
+                            <div style='margin: 15px 0;'>
+                                <a href='https://boultindia.com' style='color: #ff6b35; text-decoration: none; margin: 0 10px; font-size: 13px; font-weight: 600;'>Visit Website</a>
+                                <span style='color: #6b7280;'>|</span>
+                                <a href='https://boultindia.com/contact' style='color: #ff6b35; text-decoration: none; margin: 0 10px; font-size: 13px; font-weight: 600;'>Contact Us</a>
+                                <span style='color: #6b7280;'>|</span>
+                                <a href='https://boultindia.com/return-refund-policy' style='color: #ff6b35; text-decoration: none; margin: 0 10px; font-size: 13px; font-weight: 600;'>Return Policy</a>
+                            </div>
+                            <p style='margin: 15px 0 0 0; color: #6b7280; font-size: 11px;'>© 2024 Boult India. All rights reserved.</p>
+                            <p style='margin: 5px 0 0 0; color: #6b7280; font-size: 10px;'>This is an automated email. Please do not reply to this message.</p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
     </table>
 </body>
 </html>
