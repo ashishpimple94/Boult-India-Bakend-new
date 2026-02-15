@@ -251,22 +251,42 @@ app.put('/api/products', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Product ID required' });
     }
 
-    // Convert image to images array if provided
-    const updateData = {
-      ...updates,
-      price: parseFloat(updates.price),
-      originalPrice: updates.originalPrice ? parseFloat(updates.originalPrice) : undefined,
-      discount: updates.discount ? parseFloat(updates.discount) : undefined,
-      updatedAt: new Date()
-    };
+    // Build update data - only include fields that are actually provided
+    const updateData = {};
     
+    // Handle basic fields
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.category !== undefined) updateData.category = updates.category;
+    if (updates.featured !== undefined) updateData.featured = updates.featured;
+    if (updates.onSale !== undefined) updateData.onSale = updates.onSale;
+    if (updates.stock !== undefined) updateData.stock = updates.stock;
+    if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+    
+    // Handle numeric fields
+    if (updates.price !== undefined) updateData.price = parseFloat(updates.price);
+    if (updates.originalPrice !== undefined) updateData.originalPrice = parseFloat(updates.originalPrice);
+    if (updates.discount !== undefined) updateData.discount = parseFloat(updates.discount);
+    if (updates.rating !== undefined) updateData.rating = parseFloat(updates.rating);
+    if (updates.reviews !== undefined) updateData.reviews = parseInt(updates.reviews);
+    
+    // Handle array fields - only update if provided
+    if (updates.variants !== undefined) updateData.variants = updates.variants;
+    if (updates.directions !== undefined) updateData.directions = updates.directions;
+    if (updates.benefits !== undefined) updateData.benefits = updates.benefits;
+    if (updates.tags !== undefined) updateData.tags = updates.tags;
+    
+    // Handle image
     if (image) {
       updateData.images = [image];
     }
+    
+    // Always update timestamp
+    updateData.updatedAt = new Date();
 
     const product = await Product.findOneAndUpdate(
       { id },
-      updateData,
+      { $set: updateData },
       { new: true }
     );
     
