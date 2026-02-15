@@ -41,6 +41,12 @@ const productSchema = new mongoose.Schema({
       default: 0
     }
   }],
+  directions: [{
+    type: String
+  }],
+  benefits: [{
+    type: String
+  }],
   rating: {
     type: Number,
     default: 0,
