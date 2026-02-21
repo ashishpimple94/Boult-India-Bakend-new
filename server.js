@@ -6,6 +6,8 @@ const path = require('path');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { sendOrderConfirmation, sendContactEmail } = require('./services/emailService');
+const { errorHandler, asyncHandler } = require('./middleware/errorHandler');
+const { validateProduct, validateOrder, validateContactEmail } = require('./middleware/validator');
 require('dotenv').config();
 
 const app = express();
@@ -622,3 +624,6 @@ app.listen(PORT, () => {
   console.log(`✅ Orders: PERMANENT STORAGE`);
   console.log(`📧 Emails: Hostinger SMTP\n`);
 });
+
+// Global error handler (must be last)
+app.use(errorHandler);
