@@ -105,6 +105,26 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
+// GET single order by ID
+app.get('/api/orders/:id', async (req, res) => {
+  try {
+    const order = await Order.findOne({ id: req.params.id });
+    
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      order,
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error('Error fetching order:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch order' });
+  }
+});
+
 // POST save order
 app.post('/api/save-order', async (req, res) => {
   try {
