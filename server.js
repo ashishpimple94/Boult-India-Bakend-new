@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { sendOrderConfirmation, sendContactEmail } = require('./services/emailService');
+const { sendOrderConfirmation, sendInvoiceWithShippingCharges, sendContactEmail } = require('./services/emailService');
 const { errorHandler, asyncHandler } = require('./middleware/errorHandler');
 const { validateProduct, validateOrder, validateContactEmail } = require('./middleware/validator');
 require('dotenv').config();
@@ -164,6 +164,30 @@ app.put('/api/update-order', async (req, res) => {
     
     if (!order) {
       return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    // If shipping charges were added/updated, send invoice email
+    if (updates.shippingCharges !== undefined && updates.shippingCharges > 0) {
+      console.log('📧 Shipping charges updated, sending invoice email...');
+      sendInvoiceWithShippingCharges({
+        id: order.id,
+        customer: order.customer,
+        email: order.email,
+        phone: order.phone,
+        address: order.address,
+        city: order.city,
+        state: order.state,
+        pincode: order.pincode,
+        amount: order.amount,
+        shippingCharges: order.shippingCharges,
+        items: order.items
+      }).then(result => {
+        if (result.success) {
+          console.log('✅ Invoice email sent successfully');
+        } else {
+          console.error('❌ Invoice email failed:', result.error);
+        }
+      }).catch(err => console.error('❌ Invoice email error:', err));
     }
 
     res.json({ 

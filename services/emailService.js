@@ -172,6 +172,20 @@ const sendOrderConfirmation = async (orderData) => {
                         </td>
                     </tr>
 
+                    <!-- Delivery Charges Notice -->
+                    ${shippingCharges === 0 ? `
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <div style='background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+                                <p style='margin: 0; color: #92400e; font-size: 15px; line-height: 1.6;'>
+                                    <strong style='font-size: 16px;'>⚠️ Important Notice:</strong><br>
+                                    Delivery charges may apply based on your location. Our team will verify and update the final amount shortly. You will receive a confirmation email with the updated invoice.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    ` : ''}
+
                     <!-- Action Buttons -->
                     <tr>
                         <td style='padding: 0 30px 30px 30px; text-align: center;'>
@@ -253,6 +267,242 @@ const sendOrderConfirmation = async (orderData) => {
     console.error('❌ Error sending order confirmation email:');
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
+    return { success: false, error: error.message };
+  }
+};
+
+// Send Invoice Email with Shipping Charges Update
+const sendInvoiceWithShippingCharges = async (orderData) => {
+  try {
+    const { customer, email, id, amount, shippingCharges, items, address, city, state, pincode, phone } = orderData;
+    
+    console.log('📧 Sending invoice email with shipping charges...');
+    console.log('📦 Order ID:', id);
+    console.log('💰 Shipping Charges:', shippingCharges);
+    
+    // Build items HTML
+    let itemsHTML = '';
+    items.forEach((item, index) => {
+      const itemName = item.name || '';
+      const itemVariant = item.variant || 'Default';
+      const itemQty = item.quantity || 1;
+      const itemPrice = (item.price || 0).toFixed(2);
+      const itemTotal = ((item.price || 0) * itemQty).toFixed(2);
+      const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+      
+      itemsHTML += `
+        <tr style='background-color: ${bgColor};'>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb;'>
+            <strong style='color: #333; font-size: 14px;'>${itemName}</strong><br>
+            <small style='color: #6b7280; font-size: 12px;'>Variant: <span style='background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600;'>${itemVariant}</span></small>
+          </td>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #333; font-weight: 600; font-size: 14px;'>${itemQty}</td>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #6b7280; font-size: 14px;'>₹${itemPrice}</td>
+          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #ff6b35; font-weight: bold; font-size: 15px;'>₹${itemTotal}</td>
+        </tr>
+      `;
+    });
+    
+    const subtotal = amount;
+    const grandTotal = amount + (shippingCharges || 0);
+    
+    // Email HTML with Invoice
+    const emailHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Invoice - Boult India</title>
+</head>
+<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f4;'>
+    <table width='100%' cellpadding='0' cellspacing='0' style='background-color: #f4f4f4; padding: 20px 0;'>
+        <tr>
+            <td align='center'>
+                <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;'>
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center;'>
+                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 70px; width: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;' />
+                            <h1 style='color: #ffffff; margin: 0; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.2);'>Invoice Updated! ✅</h1>
+                            <p style='color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;'>Your order has been verified with final charges</p>
+                        </td>
+                    </tr>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style='padding: 30px 30px 20px 30px;'>
+                            <p style='font-size: 18px; color: #333; margin: 0 0 10px 0;'>Hi <strong style='color: #10b981;'>${customer}</strong>,</p>
+                            <p style='font-size: 15px; color: #666; margin: 0; line-height: 1.6;'>Your order has been verified and shipping charges have been added. Here's your updated invoice:</p>
+                        </td>
+                    </tr>
+
+                    <!-- Order Summary -->
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <table width='100%' cellpadding='0' cellspacing='0' style='background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 10px; border: 2px solid #10b981; overflow: hidden;'>
+                                <tr>
+                                    <td style='padding: 20px;'>
+                                        <table width='100%'>
+                                            <tr>
+                                                <td style='width: 50%; vertical-align: top;'>
+                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Invoice #</p>
+                                                    <p style='margin: 5px 0 0 0; color: #333; font-size: 20px; font-weight: bold;'>${id}</p>
+                                                </td>
+                                                <td style='width: 50%; text-align: right; vertical-align: top;'>
+                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Final Amount</p>
+                                                    <p style='margin: 5px 0 0 0; color: #10b981; font-size: 28px; font-weight: bold;'>₹${grandTotal.toFixed(2)}</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Order Items -->
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #10b981; padding-bottom: 10px;'>📦 Order Items</h3>
+                            <table width='100%' cellpadding='0' cellspacing='0' style='border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>
+                                <thead>
+                                    <tr style='background: linear-gradient(135deg, #333 0%, #555 100%);'>
+                                        <th style='padding: 14px 12px; text-align: left; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Product</th>
+                                        <th style='padding: 14px 12px; text-align: center; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Qty</th>
+                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Price</th>
+                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${itemsHTML}</tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Delivery Address -->
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #10b981; padding-bottom: 10px;'>🚚 Delivery Address</h3>
+                            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+                                <p style='margin: 0; color: #333; font-size: 15px; line-height: 1.8;'>
+                                    <strong style='color: #0ea5e9; font-size: 16px;'>${customer}</strong><br>
+                                    ${address}<br>
+                                    ${city}, ${state} - ${pincode}<br>
+                                    📱 Phone: <strong>${phone}</strong>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Invoice Summary -->
+                    <tr>
+                        <td style='padding: 0 30px 20px 30px;'>
+                            <div style='background-color: #f9fafb; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb;'>
+                                <div style='display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;'>
+                                    <table width='100%'>
+                                        <tr>
+                                            <td style='padding: 10px 0;'>
+                                                <span style='color: #666; font-size: 15px; font-weight: 600;'>Subtotal:</span>
+                                            </td>
+                                            <td style='text-align: right; padding: 10px 0;'>
+                                                <span style='color: #333; font-size: 15px; font-weight: bold;'>₹${subtotal.toFixed(2)}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style='padding: 10px 0; border-top: 1px solid #e5e7eb;'>
+                                                <span style='color: #666; font-size: 15px; font-weight: 600;'>Shipping Charges:</span>
+                                            </td>
+                                            <td style='text-align: right; padding: 10px 0; border-top: 1px solid #e5e7eb;'>
+                                                <span style='color: #10b981; font-size: 15px; font-weight: bold;'>₹${(shippingCharges || 0).toFixed(2)}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style='padding: 15px 0; border-top: 2px solid #10b981;'>
+                                                <span style='color: #333; font-size: 18px; font-weight: bold;'>Grand Total:</span>
+                                            </td>
+                                            <td style='text-align: right; padding: 15px 0; border-top: 2px solid #10b981;'>
+                                                <span style='color: #10b981; font-size: 22px; font-weight: bold;'>₹${grandTotal.toFixed(2)}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Action Buttons -->
+                    <tr>
+                        <td style='padding: 0 30px 30px 30px; text-align: center;'>
+                            <table width='100%' cellpadding='0' cellspacing='0'>
+                                <tr>
+                                    <td style='padding: 10px;'>
+                                        <a href='https://boultindia.com/track-order' style='display: block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(16,185,129,0.3);'>🔍 Track Order</a>
+                                    </td>
+                                    <td style='padding: 10px;'>
+                                        <a href='https://boultindia.com/account' style='display: block; background: linear-gradient(135deg, #333 0%, #555 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);'>📄 Download Invoice</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Support Section -->
+                    <tr>
+                        <td style='padding: 0 30px 30px 30px;'>
+                            <div style='background-color: #f9fafb; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;'>
+                                <p style='margin: 0 0 10px 0; color: #666; font-size: 14px;'>Need help with your order?</p>
+                                <p style='margin: 0; color: #333; font-size: 14px;'>
+                                    📧 Email: <a href='mailto:support@boultindia.com' style='color: #10b981; text-decoration: none; font-weight: 600;'>support@boultindia.com</a><br>
+                                    📞 Phone: <strong>+91-XXXXXXXXXX</strong>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style='background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 30px; text-align: center;'>
+                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 50px; width: auto; margin-bottom: 15px; opacity: 0.9; display: block; margin-left: auto; margin-right: auto;' />
+                            <p style='margin: 0 0 10px 0; color: #d1d5db; font-size: 14px; font-weight: 600;'>Boult India - Premium Vehicle Care Products</p>
+                            <p style='margin: 0 0 15px 0; color: #9ca3af; font-size: 12px;'>Quality products for your vehicle's care and maintenance</p>
+                            <p style='margin: 15px 0 0 0; color: #6b7280; font-size: 11px;'>© 2024 Boult India. All rights reserved.</p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `;
+    
+    // Create transporter
+    const transporter = createTransporter();
+    
+    // Email options
+    const fromEmail = process.env.GMAIL_USER || process.env.HOSTINGER_EMAIL || 'orders@boultindia.com';
+    const mailOptions = {
+      from: `"Boult India Orders" <${fromEmail}>`,
+      to: email,
+      cc: 'vtechmultisolutions@gmail.com',
+      replyTo: fromEmail,
+      subject: `Invoice Updated - ${id} | Boult India`,
+      html: emailHTML
+    };
+    
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+    
+    console.log('✅ Invoice email sent successfully!');
+    console.log('📧 Message ID:', info.messageId);
+    
+    return { success: true, messageId: info.messageId };
+    
+  } catch (error) {
+    console.error('❌ Error sending invoice email:');
+    console.error('Error message:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -357,5 +607,6 @@ async function sendContactEmail(contactData) {
 
 module.exports = {
   sendOrderConfirmation,
+  sendInvoiceWithShippingCharges,
   sendContactEmail
 };
