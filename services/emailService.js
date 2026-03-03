@@ -46,7 +46,7 @@ const createTransporter = () => {
 // Send Order Confirmation Email
 const sendOrderConfirmation = async (orderData) => {
   try {
-    const { customer, email, id, amount, items, address, city, state, pincode, phone } = orderData;
+    const { customer, email, id, amount, items, address, city, state, pincode, phone, shippingCharges = 0 } = orderData;
     
     console.log('📧 Attempting to send order confirmation email...');
     console.log('📦 Order ID:', id);
