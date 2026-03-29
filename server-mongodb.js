@@ -17,6 +17,9 @@ const User = require('./models/User');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
+// Email Service
+const { sendOrderConfirmation, sendInvoiceWithShippingCharges } = require('./services/emailService');
+
 // Utils
 const sanitizeUser = (userDoc) => {
   if (!userDoc) return null;
@@ -374,6 +377,14 @@ app.post('/api/save-order', async (req, res) => {
     
     await order.save();
     
+    // Send order confirmation email
+    try {
+      await sendOrderConfirmation(order);
+      console.log('✅ Order confirmation email sent to:', order.email);
+    } catch (emailError) {
+      console.error('❌ Email sending failed:', emailError.message);
+    }
+    
     res.json({ 
       success: true, 
       message: 'Order saved successfully', 
@@ -403,6 +414,16 @@ app.put('/api/update-order', async (req, res) => {
     
     if (!order) {
       return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    // Send invoice email if shipping charges were updated
+    if (updates.shippingCharges !== undefined && updates.shippingCharges > 0) {
+      try {
+        await sendInvoiceWithShippingCharges(order);
+        console.log('✅ Invoice email sent for order:', order.id);
+      } catch (emailError) {
+        console.error('❌ Invoice email failed:', emailError.message);
+      }
     }
 
     res.json({ 
