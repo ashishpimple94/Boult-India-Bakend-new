@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# React / CRA build folders (rebuild with npm run build)
+boult-react-ecommerce/build/
+boult-react-admin/build/
+
+# Secrets & local env (never commit)
+.env
+.env.local
+boult-backend/.env
+hostinger-env-files/*.env
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.cursor/
+
+# Logs
+*.log
+npm-debug.log*

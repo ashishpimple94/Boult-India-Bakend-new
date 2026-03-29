@@ -1,0 +1,80 @@
+🚀 HOSTINGER UPLOAD INSTRUCTIONS - ORDER FIX
+================================================
+
+PROBLEM: Orders failing with "Failed to save order" (500 error)
+SOLUTION: Upload new build to Hostinger (productId fix is ready)
+
+📁 FILES READY: UPLOAD_TO_HOSTINGER/ folder
+
+🔧 WHAT WAS FIXED:
+- Added productId field to order items (backend requires it)
+- Backend is 100% working (tested with curl)
+- New build created with fix
+
+⚠️ CRITICAL: Live website (boultindia.com) still has OLD code
+You MUST upload new files to fix orders!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 UPLOAD STEPS (Choose ONE method):
+
+METHOD 1: Hostinger File Manager (Easiest)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Login to Hostinger: https://hpanel.hostinger.com
+2. Go to: Files → File Manager
+3. Navigate to: public_html
+4. DELETE all old files in public_html (select all → delete)
+5. Upload ALL files from UPLOAD_TO_HOSTINGER/ folder
+   - Click "Upload Files"
+   - Select all files from UPLOAD_TO_HOSTINGER/
+   - Wait for upload to complete
+6. Clear browser cache (Ctrl+Shift+Delete)
+7. Test order on boultindia.com
+
+METHOD 2: FileZilla FTP (Faster for large files)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Open FileZilla
+2. Connect to Hostinger FTP:
+   - Host: ftp.boultindia.com (or your FTP host)
+   - Username: (your FTP username)
+   - Password: (your FTP password)
+   - Port: 21
+3. Navigate to: public_html
+4. DELETE all old files in public_html
+5. Drag & drop ALL files from UPLOAD_TO_HOSTINGER/ to public_html
+6. Wait for upload to complete
+7. Clear browser cache
+8. Test order on boultindia.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ AFTER UPLOAD:
+1. Clear browser cache (important!)
+2. Go to boultindia.com
+3. Add product to cart
+4. Try Cash on Delivery order
+5. Order should place successfully!
+
+🔍 HOW TO VERIFY:
+- Open browser console (F12)
+- Try placing order
+- Should see: "Order placed successfully"
+- No more "Failed to save order" errors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 IMPORTANT NOTES:
+- Backend is already working (no backend changes needed)
+- Backend auto-deploys from GitHub (already done)
+- Only frontend needs upload to Hostinger
+- Must delete old files before uploading new ones
+- Must clear browser cache after upload
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❓ NEED HELP?
+If orders still fail after upload:
+1. Check browser console for errors
+2. Verify all files uploaded correctly
+3. Make sure you cleared browser cache
+4. Try in incognito/private window

@@ -1,0 +1,85 @@
+📧 EMAIL SYSTEM - FINAL SETUP STEPS
+====================================
+
+✅ FILES READY:
+- ecommerce-EMAIL-READY.zip (with PHPMailer script)
+- send-order-email.php (with your email credentials)
+
+🔧 SETUP STEPS:
+===============
+
+STEP 1: Upload to Hostinger
+----------------------------
+1. Extract: ecommerce-EMAIL-READY.zip
+2. Upload ALL files to: public_html/
+3. Make sure send-order-email.php is at ROOT level
+4. File location: public_html/send-order-email.php
+
+STEP 2: Verify PHP File
+------------------------
+1. Open browser
+2. Go to: https://boultindia.com/send-order-email.php
+3. You should see: {"success":false,"error":"Method not allowed"}
+4. This means file is working! ✅
+
+STEP 3: Test Email
+------------------
+1. Place a test order on website
+2. Check customer email inbox
+3. Check vtechmultisolutions@gmail.com inbox
+4. Both should receive order confirmation email
+
+📧 EMAIL DETAILS:
+=================
+From: orders@boultindia.com
+Password: Hrishi@123*
+SMTP: mail.hostinger.com
+Port: 587
+CC: vtechmultisolutions@gmail.com
+
+🎯 HOW IT WORKS:
+================
+1. Customer places order
+2. Render backend calls: https://boultindia.com/send-order-email.php
+3. PHP script sends email using Hostinger SMTP
+4. Email sent to customer + CC to vtechmultisolutions@gmail.com
+
+✨ EMAIL FEATURES:
+==================
+✅ Professional HTML template
+✅ Boult India branding
+✅ Order details with items table
+✅ Delivery address
+✅ Track Order button
+✅ Download Invoice button
+✅ Responsive design
+
+⚠️ IMPORTANT NOTES:
+===================
+1. PHP file uses PHPMailer (if available) or mail() function
+2. Email credentials are in the PHP file
+3. File must be at ROOT level (not in subfolder)
+4. CORS headers are already configured
+
+🔍 TROUBLESHOOTING:
+===================
+
+If emails not sending:
+1. Check Hostinger email account is active
+2. Verify password: Hrishi@123*
+3. Check PHP error logs in Hostinger cPanel
+4. Test PHP file directly: https://boultindia.com/send-order-email.php
+
+If 404 error:
+1. File not uploaded to correct location
+2. Should be: public_html/send-order-email.php
+3. NOT: public_html/api/send-order-email.php
+
+If 500 error:
+1. Check email credentials
+2. Check Hostinger email account status
+3. Contact Hostinger support for SMTP access
+
+🚀 READY TO GO!
+===============
+Upload karo aur test karo! 💪

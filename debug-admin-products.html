@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Admin Products</title>
+</head>
+<body>
+    <h1>Debug Admin Products API</h1>
+    
+    <div>
+        <h2>1. Test Add Product</h2>
+        <button onclick="testAddProduct()">Add Test Product</button>
+        <div id="addResult"></div>
+    </div>
+    
+    <div>
+        <h2>2. Test Get Products</h2>
+        <button onclick="testGetProducts()">Get Products</button>
+        <div id="getResult"></div>
+    </div>
+    
+    <div>
+        <h2>3. Test Delete Product</h2>
+        <input type="text" id="productId" placeholder="Product ID">
+        <button onclick="testDeleteProduct()">Delete Product</button>
+        <div id="deleteResult"></div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'https://boult-india-bakend-new.onrender.com';
+        
+        async function testAddProduct() {
+            const resultDiv = document.getElementById('addResult');
+            resultDiv.innerHTML = 'Adding product...';
+            
+            try {
+                const productData = {
+                    name: 'Debug Test Product',
+                    description: 'Test product from debug page',
+                    price: 150,
+                    category: 'test',
+                    image: '/debug-test.png',
+                    featured: false,
+                    onSale: false,
+                    variants: [],
+                    specifications: [],
+                    directions: [],
+                    benefits: []
+                };
+                
+                const response = await fetch(`${BACKEND_URL}/api/products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: JSON.stringify(productData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <h3>✅ Product Added!</h3>
+                        <p><strong>ID:</strong> ${data.product.id}</p>
+                        <p><strong>Name:</strong> ${data.product.name}</p>
+                        <p>Copy this ID for delete test: <code>${data.product.id}</code></p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<h3>❌ Failed:</h3><p>${data.error}</p>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>❌ Error:</h3><p>${error.message}</p>`;
+            }
+        }
+        
+        async function testGetProducts() {
+            const resultDiv = document.getElementById('getResult');
+            resultDiv.innerHTML = 'Getting products...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/products`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>✅ Products Retrieved!</h3>
+                    <p><strong>Count:</strong> ${data.products?.length || 0}</p>
+                    <pre>${JSON.stringify(data.products, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>❌ Error:</h3><p>${error.message}</p>`;
+            }
+        }
+        
+        async function testDeleteProduct() {
+            const productId = document.getElementById('productId').value;
+            const resultDiv = document.getElementById('deleteResult');
+            
+            if (!productId) {
+                resultDiv.innerHTML = '<p>❌ Please enter Product ID</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Deleting product...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/products`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: JSON.stringify({ id: productId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `<h3>✅ Product Deleted!</h3><p>${data.message}</p>`;
+                } else {
+                    resultDiv.innerHTML = `<h3>❌ Failed:</h3><p>${data.error}</p>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>❌ Error:</h3><p>${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

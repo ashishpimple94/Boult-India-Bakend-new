@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Admin Images</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        img { max-width: 200px; margin: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Admin Panel Image Debug</h1>
+    
+    <div class="test">
+        <h3>Test 1: Backend API</h3>
+        <button onclick="testBackend()">Test Backend Products API</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <div class="test">
+        <h3>Test 2: Local Images (Admin Public Folder)</h3>
+        <div id="local-images"></div>
+    </div>
+
+    <div class="test">
+        <h3>Test 3: Image Loading</h3>
+        <div id="image-test"></div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:5000';
+        
+        // Test backend
+        async function testBackend() {
+            const result = document.getElementById('backend-result');
+            result.innerHTML = '⏳ Loading...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/products`);
+                const data = await response.json();
+                
+                if (data.success && data.products) {
+                    result.innerHTML = `
+                        <div class="success">
+                            ✅ Backend working!<br>
+                            Products: ${data.products.length}<br>
+                            First product image: ${data.products[0].image}
+                        </div>
+                    `;
+                    
+                    // Show first 3 products
+                    const imageTest = document.getElementById('image-test');
+                    imageTest.innerHTML = '<h4>First 3 Products:</h4>';
+                    
+                    data.products.slice(0, 3).forEach(p => {
+                        imageTest.innerHTML += `
+                            <div style="display: inline-block; margin: 10px; text-align: center;">
+                                <strong>${p.name}</strong><br>
+                                <img src="${p.image}" 
+                                     onerror="this.style.border='3px solid red'; this.alt='❌ Failed: ' + this.src"
+                                     onload="this.style.border='3px solid green'"
+                                     alt="${p.name}">
+                                <br><small>${p.image}</small>
+                            </div>
+                        `;
+                    });
+                } else {
+                    result.innerHTML = '<div class="error">❌ No products found</div>';
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Test local images
+        const localImages = [
+            '/Anti-Rust-Spray-500ml-Website-2.png',
+            '/Battery-Terminal-Mask-front.png',
+            '/Brake-Parts-front-clean.png',
+            '/vkhj.png',
+            '/car-wash-soap-1024x1024.png'
+        ];
+        
+        const localDiv = document.getElementById('local-images');
+        localImages.forEach(img => {
+            localDiv.innerHTML += `
+                <div style="display: inline-block; margin: 10px; text-align: center;">
+                    <img src="${img}" 
+                         onerror="this.style.border='3px solid red'; this.alt='❌ Not found'"
+                         onload="this.style.border='3px solid green'"
+                         style="max-width: 150px;">
+                    <br><small>${img}</small>
+                </div>
+            `;
+        });
+        
+        // Auto-test on load
+        window.onload = () => {
+            testBackend();
+        };
+    </script>
+</body>
+</html>

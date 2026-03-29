@@ -1,0 +1,67 @@
+✅ HOSTINGER SMTP EMAIL - SETUP COMPLETE
+=========================================
+
+📧 WHAT I DID:
+==============
+✅ Updated backend to use Hostinger SMTP
+✅ Changed from Gmail to orders@boultindia.com
+✅ Pushed code to GitHub (commit: db897f8)
+✅ Render will auto-deploy in 2-3 minutes
+
+🔧 YOU NEED TO DO (2 MINUTES):
+==============================
+
+STEP 1: Add Environment Variables to Render
+--------------------------------------------
+1. Open: https://dashboard.render.com
+2. Click: "boult-backend" service
+3. Click: "Environment" tab
+4. Add these 2 variables:
+
+   Variable Name: HOSTINGER_EMAIL
+   Value: orders@boultindia.com
+
+   Variable Name: HOSTINGER_PASSWORD
+   Value: Hrishi@123*
+
+5. Click "Save Changes"
+
+STEP 2: Wait for Deploy
+------------------------
+- Render will automatically redeploy
+- Wait 2-3 minutes
+- Look for "Live" status
+
+STEP 3: Test
+------------
+- Place a test order
+- Check email inbox
+- ✅ Done!
+
+📧 EMAIL DETAILS:
+=================
+From: orders@boultindia.com
+CC: vtechmultisolutions@gmail.com
+Reply-To: orders@boultindia.com
+
+SMTP Settings:
+- Host: smtp.hostinger.com
+- Port: 465
+- Security: SSL
+
+🎯 THAT'S IT!
+=============
+Just add 2 environment variables to Render!
+Emails will work immediately! 💪
+
+⚠️ IMPORTANT:
+=============
+Make sure orders@boultindia.com email account is:
+1. Active in Hostinger
+2. Password is correct (Hrishi@123*)
+3. SMTP is enabled
+
+If email not working, check:
+- Render logs for errors
+- Hostinger email account status
+- SMTP settings in Hostinger

@@ -1,0 +1,78 @@
+🚀 HOSTINGER PHP EMAIL SETUP GUIDE
+===================================
+
+## STEP 1: Upload PHP Script to Hostinger
+
+1. Login to Hostinger cPanel
+2. Go to File Manager
+3. Navigate to: public_html/
+4. Create folder: email-service/
+5. Upload file: send-order-email.php to public_html/email-service/
+6. Set permissions: 644 (read/write for owner, read for others)
+
+File location: https://boultindia.com/email-service/send-order-email.php
+
+IMPORTANT: Don't use /api/ folder because React app is using that route!
+
+## STEP 2: Test PHP Script
+
+Open browser and test:
+https://boultindia.com/api/send-order-email.php
+
+You should see: {"success":false,"error":"Method not allowed"}
+This means script is working!
+
+## STEP 3: Backend Already Updated
+
+✅ Backend code updated to call PHP script
+✅ axios package already installed
+✅ .env configured with HOSTINGER_EMAIL_API
+
+## STEP 4: Push Backend Changes
+
+cd boult-backend
+git add .
+git commit -m "Add Hostinger PHP email integration"
+git push origin main
+
+## STEP 5: Update Render Environment Variable
+
+Go to Render Dashboard:
+1. Select: boult-india-bakend-new
+2. Environment tab
+3. Add variable:
+   HOSTINGER_EMAIL_API = https://boultindia.com/api/send-order-email.php
+4. Save Changes (auto redeploy)
+
+## HOW IT WORKS:
+
+1. Order placed → Render backend
+2. Backend sends HTTP POST → Hostinger PHP script
+3. PHP script sends email using Hostinger SMTP
+4. Email sent from: admin-orders@boultindia.com
+5. CC to: vtechmultisolutions@gmail.com
+
+## TESTING:
+
+1. Place test order on website
+2. Check Render logs for: "📧 Sending email via Hostinger PHP script..."
+3. Check for: "✅ Order confirmation email sent successfully via Hostinger"
+4. Check customer email inbox
+5. Check vtechmultisolutions@gmail.com for CC
+
+## TROUBLESHOOTING:
+
+If emails not sending:
+1. Check PHP script uploaded correctly
+2. Check file permissions (644)
+3. Check Hostinger email account exists: admin-orders@boultindia.com
+4. Check Render environment variable set
+5. Check Render logs for errors
+
+## FILES CREATED:
+
+✅ hostinger-email-script/send-order-email.php (upload to Hostinger)
+✅ boult-backend/services/emailService.js (updated)
+✅ boult-backend/.env (updated)
+
+DONE! Email system ready to work! 🎉

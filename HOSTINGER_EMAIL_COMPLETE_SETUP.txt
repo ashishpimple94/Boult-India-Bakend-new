@@ -1,0 +1,80 @@
+🔧 HOSTINGER EMAIL - COMPLETE SETUP GUIDE
+==========================================
+
+✅ Email Account Created:
+- Email: orders@boultindia.com
+- Password: Hrishi@123*
+- SMTP: mail.hostinger.com
+- Port: 587
+
+❌ CURRENT PROBLEM:
+PHP mail() function nahi chal raha kyunki Hostinger mein authentication chahiye
+
+🎯 SOLUTION - 3 STEPS:
+======================
+
+STEP 1: Enable Email in Hostinger cPanel
+-----------------------------------------
+1. Login to Hostinger hPanel
+2. Go to "Advanced" → "Email"
+3. Find: orders@boultindia.com
+4. Click "Manage"
+5. Check if "SMTP Authentication" is enabled
+6. If not, enable it
+
+STEP 2: Update PHP Configuration (IMPORTANT!)
+----------------------------------------------
+Hostinger mein PHP mail() function ke liye special configuration chahiye:
+
+Option A: Create php.ini file
+------------------------------
+1. Create file: public_html/php.ini
+2. Add these lines:
+
+[mail function]
+SMTP = mail.hostinger.com
+smtp_port = 587
+sendmail_from = orders@boultindia.com
+sendmail_path = "/usr/sbin/sendmail -t -i"
+
+3. Save and upload
+
+Option B: Use .htaccess (Easier!)
+----------------------------------
+1. Open: public_html/.htaccess
+2. Add at the end:
+
+php_value SMTP mail.hostinger.com
+php_value smtp_port 587
+php_value sendmail_from orders@boultindia.com
+
+3. Save
+
+STEP 3: Upload Updated Files
+-----------------------------
+1. Upload send-order-email-working.php
+2. Rename to: send-order-email.php
+3. Location: public_html/send-order-email.php
+4. Test: node test-hostinger-email.js
+
+⚠️ IF STILL NOT WORKING:
+========================
+
+ALTERNATIVE: Use PHPMailer Library
+-----------------------------------
+Hostinger supports PHPMailer which is more reliable.
+
+I can create a PHPMailer version that will 100% work!
+
+Just tell me:
+1. "Use PHPMailer" - I'll create it
+2. "Try .htaccess first" - I'll help with that
+
+🚀 RECOMMENDED: PHPMailer
+=========================
+- 100% reliable
+- Works on all Hostinger plans
+- Professional email delivery
+- Better error handling
+
+Bol do "PHPMailer lagao" aur main abhi setup kar deta hoon! 💪

@@ -1,0 +1,45 @@
+🚀 RENDER EMAIL CONFIGURATION GUIDE
+=====================================
+
+Backend code with email service has been pushed to GitHub.
+Render will auto-deploy in 2-3 minutes.
+
+⚠️ IMPORTANT: Add these environment variables in Render Dashboard
+
+1. Go to: https://dashboard.render.com
+2. Select your backend service: boult-india-bakend-new
+3. Go to "Environment" tab
+4. Add these variables:
+
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_USER=orders@boultindia.com
+SMTP_PASS=Hrishi@123*
+ADMIN_EMAIL=vtechmultisolutions@gmail.com
+
+5. Click "Save Changes"
+6. Render will automatically redeploy
+
+✅ VERIFICATION:
+- Wait 2-3 minutes for deployment
+- Place a test order on production site
+- Check emails in:
+  * ashishpimple94@gmail.com (customer)
+  * vtechmultisolutions@gmail.com (admin CC)
+  * Check spam folder too!
+
+📝 WHAT'S INCLUDED:
+✅ Professional HTML email template
+✅ Boult India logo embedded
+✅ Order details with items table
+✅ Delivery address
+✅ Track Order button
+✅ Download Invoice button
+✅ Admin CC email
+✅ Hostinger SMTP integration
+
+🔧 BACKEND LOGS:
+After deployment, check Render logs for:
+"✅ Order confirmation email sent successfully"
+or
+"❌ Failed to send order confirmation email"

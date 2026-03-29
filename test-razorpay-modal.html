@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Razorpay Integration Test</h1>
+    <button id="testBtn">Test Razorpay Modal</button>
+    <div id="status"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const testBtn = document.getElementById('testBtn');
+
+        function updateStatus(message) {
+            statusDiv.innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        // Check if Razorpay is loaded
+        window.addEventListener('load', () => {
+            updateStatus('Page loaded');
+            updateStatus('Razorpay available: ' + !!window.Razorpay);
+        });
+
+        testBtn.addEventListener('click', async () => {
+            updateStatus('🔄 Starting Razorpay test...');
+
+            try {
+                // Step 1: Create order on backend
+                const backendUrl = 'https://boult-india-bakend-new.onrender.com';
+                const orderData = {
+                    amount: 100,
+                    orderId: 'TEST_' + Date.now(),
+                    customer: 'Test User'
+                };
+
+                updateStatus('🔄 Creating order on backend...');
+                const response = await fetch(`${backendUrl}/api/razorpay/create-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Backend error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                updateStatus('✅ Order created: ' + result.order.id);
+
+                // Step 2: Check Razorpay
+                if (!window.Razorpay) {
+                    throw new Error('Razorpay not loaded');
+                }
+
+                updateStatus('✅ Razorpay script loaded');
+
+                // Step 3: Open Razorpay modal
+                const options = {
+                    key: 'rzp_live_S9KdjLbjrue2F0',
+                    amount: result.order.amount,
+                    currency: 'INR',
+                    name: 'V Tech Multi Solutions',
+                    description: 'Test Payment',
+                    order_id: result.order.id,
+                    handler: function(response) {
+                        updateStatus('✅ Payment successful!');
+                        updateStatus('Payment ID: ' + response.razorpay_payment_id);
+                        updateStatus('Order ID: ' + response.razorpay_order_id);
+                    },
+                    prefill: {
+                        name: 'Test User',
+                        email: 'test@example.com',
+                        contact: '9999999999'
+                    },
+                    theme: {
+                        color: '#ff6b35'
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            updateStatus('❌ Payment modal closed');
+                        }
+                    }
+                };
+
+                updateStatus('🔄 Opening Razorpay modal...');
+                const rzp = new Razorpay(options);
+                rzp.open();
+
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message);
+                console.error('Test error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+🔧 HOSTINGER EMAIL SETUP GUIDE
+================================
+
+❌ PROBLEM: Emails nahi ja rahe hain
+✅ SOLUTION: Hostinger mein email account banana padega
+
+📋 STEP-BY-STEP SETUP:
+======================
+
+STEP 1: Create Email Account in Hostinger
+------------------------------------------
+1. Login to Hostinger hPanel
+2. Go to "Emails" section
+3. Click "Create Email Account"
+4. Create email: admin-orders@boultindia.com
+5. Set a strong password (save it!)
+6. Click "Create"
+
+STEP 2: Update PHP Script
+--------------------------
+1. Open send-order-email-smtp.php
+2. Find line: $smtp_password = 'YOUR_EMAIL_PASSWORD_HERE';
+3. Replace with actual password from Step 1
+4. Save file
+
+STEP 3: Upload Updated PHP File
+--------------------------------
+1. Upload send-order-email-smtp.php to Hostinger
+2. Rename it to: send-order-email.php
+3. Location: public_html/send-order-email.php
+4. Replace existing file
+
+STEP 4: Test Email
+------------------
+1. Run: node test-hostinger-email.js
+2. Check customer email inbox
+3. Check vtechmultisolutions@gmail.com inbox
+
+⚠️ ALTERNATIVE SOLUTION (EASIER):
+==================================
+
+If Hostinger email setup is too complex, we can use:
+
+OPTION A: Gmail SMTP via Hostinger
+-----------------------------------
+- Use vtechmultisolutions@gmail.com
+- Generate App Password in Gmail
+- Update PHP script with Gmail SMTP
+
+OPTION B: SendGrid (Free Tier)
+-------------------------------
+- 100 emails/day free
+- Professional delivery
+- Easy setup
+
+OPTION C: Mailgun (Free Tier)
+------------------------------
+- 5000 emails/month free
+- Reliable delivery
+- Simple API
+
+🎯 RECOMMENDED: Option A (Gmail SMTP)
+=====================================
+
+Kyunki tumhare paas already Gmail account hai (vtechmultisolutions@gmail.com)
+
+Chahiye toh main Gmail SMTP wala solution bana doon?
+Wo sabse easy hoga aur turant kaam karega!
+
+Just tell me: "Gmail SMTP use karo" and I'll set it up! 🚀

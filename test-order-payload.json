@@ -1,0 +1,22 @@
+{
+  "id": "ORDER_DEBUG_123",
+  "customer": "Debug Test",
+  "email": "debug@test.com",
+  "phone": "9876543210",
+  "address": "Test Address, Flat 101",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "pincode": "400001",
+  "amount": 500,
+  "paymentMethod": "cod",
+  "items": [{
+    "productId": "anti-rust-spray",
+    "name": "Anti Rust Spray",
+    "variant": "Default",
+    "quantity": 1,
+    "price": 500,
+    "image": "/Anti-Rust-Spray-500ml-Website-2.png"
+  }],
+  "status": "pending",
+  "date": "2026-02-10T04:20:00.000Z"
+}

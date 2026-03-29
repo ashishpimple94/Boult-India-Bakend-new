@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .debug { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin-top: 10px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Admin Login Test</h1>
+    <p>This page tests the admin login functionality directly.</p>
+    
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" value="admin" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="admin123" required>
+        </div>
+        <button type="submit">Test Admin Login</button>
+    </form>
+    
+    <div id="result"></div>
+    <div id="debug"></div>
+
+    <script>
+        const backendUrl = 'http://localhost:5000';
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            const debugDiv = document.getElementById('debug');
+            
+            let debugLog = '';
+            
+            try {
+                debugLog += `🔄 Testing admin login...\n`;
+                debugLog += `Username: ${username}\n`;
+                debugLog += `Backend URL: ${backendUrl}\n\n`;
+                
+                const response = await fetch(`${backendUrl}/api/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+                
+                debugLog += `Response Status: ${response.status}\n`;
+                debugLog += `Response OK: ${response.ok}\n`;
+                
+                const data = await response.json();
+                debugLog += `Response Data: ${JSON.stringify(data, null, 2)}\n`;
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Login Successful!</h3>
+                            <p><strong>Name:</strong> ${data.user.name}</p>
+                            <p><strong>Role:</strong> ${data.user.role}</p>
+                            <p><strong>Email:</strong> ${data.user.email}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Login Failed</h3>
+                            <p>${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                debugLog += `❌ Error: ${error.message}\n`;
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Connection Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            debugDiv.innerHTML = `<div class="debug">${debugLog}</div>`;
+        });
+        
+        // Test backend connection on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${backendUrl}/health`);
+                const data = await response.json();
+                console.log('Backend health check:', data);
+            } catch (error) {
+                console.error('Backend connection failed:', error);
+            }
+        });
+    </script>
+</body>
+</html>

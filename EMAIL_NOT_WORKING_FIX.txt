@@ -1,0 +1,68 @@
+🚨 EMAIL ISSUE - SIMPLE FIX (5 MINUTES)
+========================================
+
+❌ PROBLEM: Emails not sending
+✅ REASON: Gmail App Password missing in Render
+
+🔧 FIX STEPS:
+=============
+
+STEP 1: Generate Gmail App Password (2 minutes)
+------------------------------------------------
+1. Open: https://myaccount.google.com/apppasswords
+2. Login: vtechmultisolutions@gmail.com (use your Gmail password)
+3. Click: "Create App Password" button
+4. App name: Type "Boult Backend"
+5. Click: "Create"
+6. COPY the 16-character password (looks like: abcd efgh ijkl mnop)
+   ⚠️ IMPORTANT: Save this password somewhere safe!
+
+STEP 2: Add to Render (2 minutes)
+----------------------------------
+1. Open: https://dashboard.render.com
+2. Click: "boult-backend" service
+3. Click: "Environment" tab (left sidebar)
+4. Find: GMAIL_APP_PASSWORD variable
+5. Click: "Edit" button
+6. Paste: The 16-character password from Step 1
+7. Click: "Save Changes"
+
+STEP 3: Wait for Deploy (1 minute)
+-----------------------------------
+- Render will automatically redeploy
+- Wait 1-2 minutes
+- Look for "Live" status
+
+STEP 4: Test Email
+------------------
+1. Place a test order on website
+2. Check email inbox
+3. ✅ Email should arrive!
+
+📧 WHAT WILL HAPPEN:
+====================
+✅ Customer gets order confirmation email
+✅ vtechmultisolutions@gmail.com gets CC copy
+✅ Professional HTML email with order details
+✅ Track Order button
+✅ Download Invoice button
+
+⚠️ IMPORTANT NOTES:
+===================
+- App Password ≠ Gmail Password (they are different!)
+- Keep App Password secure
+- Gmail allows 500 emails/day
+- Emails sent from: vtechmultisolutions@gmail.com
+- Reply-To: orders@boultindia.com
+
+🔍 IF STILL NOT WORKING:
+========================
+1. Check Render logs for errors
+2. Make sure App Password has no spaces
+3. Try regenerating App Password
+4. Contact me with error message
+
+🎯 THAT'S IT!
+=============
+Just 2 steps: Generate password → Add to Render
+Emails will work immediately! 💪
