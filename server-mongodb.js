@@ -86,15 +86,7 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 app.use(compression());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
-
-// CORS configuration - Allow all origins
+// CORS configuration - MUST be before rate limiter and routes
 app.use(cors({
   origin: '*',
   credentials: false,
@@ -104,6 +96,14 @@ app.use(cors({
 
 // Handle preflight
 app.options('*', cors());
+
+// Rate limiting (after CORS)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -742,6 +742,30 @@ app.get('/health', async (req, res) => {
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, error: 'Endpoint not found' });
+});
+
+// ============ CONTACT API ============
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, phone, enquiryType, subject, message } = req.body;
+    
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ success: false, error: 'Name, email, subject and message are required' });
+    }
+
+    const { sendContactEmail } = require('./services/emailService');
+    const result = await sendContactEmail({ name, email, phone, enquiryType, subject, message });
+    
+    if (result.success) {
+      console.log(`✅ Contact form submitted by ${name} (${email})`);
+      res.json({ success: true, message: 'Message sent successfully' });
+    } else {
+      res.status(500).json({ success: false, error: result.error || 'Failed to send message' });
+    }
+  } catch (error) {
+    console.error('Error processing contact form:', error);
+    res.status(500).json({ success: false, error: 'Failed to process contact form' });
+  }
 });
 
 // Start server
