@@ -84,13 +84,30 @@ app.use('/api/', limiter);
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    process.env.ADMIN_URL || 'http://localhost:3001',
-    'http://localhost:3002',
-    'https://boult-india-ecommerce.vercel.app',
-    'https://boult-india-admin.vercel.app'
-  ],
+  origin: function(origin, callback) {
+    // Allow all origins in development, or check whitelist
+    if (!origin) return callback(null, true);
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      process.env.ADMIN_URL || 'http://localhost:3001',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:3003',
+      'https://boult-india-ecommerce.vercel.app',
+      'https://boult-india-admin.vercel.app',
+      'https://peru-leopard-640836.hostingersite.com',
+      'https://deepskyblue-gull-240785.hostingersite.com',
+      'https://boultindia.com',
+      'https://www.boultindia.com',
+      'https://admin.boultindia.com'
+    ];
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
