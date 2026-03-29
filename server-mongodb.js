@@ -19,7 +19,12 @@ const crypto = require('crypto');
 
 // Utils
 const sanitizeUser = (userDoc) => {
-  if (!userDoc) re// Connect to MongoDB
+  if (!userDoc) return null;
+  const { password, __v, ...safeUser } = userDoc.toObject ? userDoc.toObject() : userDoc;
+  return safeUser;
+};
+
+// Connect to MongoDB
 connectDB();
 
 // Seed default admin users
