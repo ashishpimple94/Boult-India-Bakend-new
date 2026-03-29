@@ -150,7 +150,6 @@ orderSchema.index({ email: 1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ paymentMethod: 1 });
 orderSchema.index({ createdAt: -1 });
-orderSchema.index({ id: 1 });
 
 // Virtual for order total calculation
 orderSchema.virtual('orderTotal').get(function() {
