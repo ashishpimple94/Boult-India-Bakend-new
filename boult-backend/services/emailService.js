@@ -1,36 +1,49 @@
 const nodemailer = require('nodemailer');
 
-// Email SMTP Configuration - Try Gmail first, fallback to Hostinger
+const SITE_URL = 'https://boultindia.com';
+const LOGO_URL = `${SITE_URL}/logos/logo1.png`;
+const SUPPORT_EMAIL = 'support@boultindia.com';
+const ADMIN_CC = 'vtechmultisolutions@gmail.com';
+
+function escapeHtml(value) {
+  if (value === undefined || value === null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 const createTransporter = () => {
-  // Check if Gmail credentials are properly set (both must exist and not be empty)
-  const hasGmailCredentials = process.env.GMAIL_USER && 
-                               process.env.GMAIL_APP_PASSWORD && 
-                               process.env.GMAIL_USER.trim() !== '' && 
-                               process.env.GMAIL_APP_PASSWORD.trim() !== '';
-  
-  // Try Gmail SMTP if configured
+  const hasGmailCredentials =
+    process.env.GMAIL_USER &&
+    process.env.GMAIL_APP_PASSWORD &&
+    process.env.GMAIL_USER.trim() !== '' &&
+    process.env.GMAIL_APP_PASSWORD.trim() !== '';
+
   if (hasGmailCredentials) {
     console.log('📧 Using Gmail SMTP');
     return nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
-      }
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
     });
   }
-  
-  // Check if Hostinger credentials are set
-  const hasHostingerCredentials = process.env.HOSTINGER_EMAIL && 
-                                   process.env.HOSTINGER_PASSWORD &&
-                                   process.env.HOSTINGER_EMAIL.trim() !== '' &&
-                                   process.env.HOSTINGER_PASSWORD.trim() !== '';
-  
+
+  const hasHostingerCredentials =
+    process.env.HOSTINGER_EMAIL &&
+    process.env.HOSTINGER_PASSWORD &&
+    process.env.HOSTINGER_EMAIL.trim() !== '' &&
+    process.env.HOSTINGER_PASSWORD.trim() !== '';
+
   if (!hasHostingerCredentials) {
-    throw new Error('No email credentials configured. Please set either Gmail or Hostinger SMTP credentials in .env file');
+    throw new Error(
+      'No email credentials configured. Please set either Gmail or Hostinger SMTP credentials in .env file'
+    );
   }
-  
-  // Use Hostinger SMTP
+
   console.log('📧 Using Hostinger SMTP');
   return nodemailer.createTransport({
     host: 'smtp.hostinger.com',
@@ -38,231 +51,283 @@ const createTransporter = () => {
     secure: true,
     auth: {
       user: process.env.HOSTINGER_EMAIL,
-      pass: process.env.HOSTINGER_PASSWORD
-    }
+      pass: process.env.HOSTINGER_PASSWORD,
+    },
   });
 };
 
-// Send Order Confirmation Email
+function buildOrderItemsRows(items, accentHex = '#4f46e5') {
+  if (!items || !items.length) {
+    return `<tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b;font-size:14px;">No line items</td></tr>`;
+  }
+  let html = '';
+  items.forEach((item, index) => {
+    const itemName = escapeHtml(item.name || '');
+    const itemVariant = escapeHtml(item.variant || 'Default');
+    const itemQty = item.quantity || 1;
+    const itemPrice = (item.price || 0).toFixed(2);
+    const itemTotal = ((item.price || 0) * itemQty).toFixed(2);
+    const bg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+    html += `
+        <tr style="background-color:${bg};">
+          <td style="padding:14px 14px;border-bottom:1px solid #e2e8f0;">
+            <strong style="color:#0f172a;font-size:14px;">${itemName}</strong><br>
+            <span style="color:#64748b;font-size:12px;">Variant</span>
+            <span style="display:inline-block;margin-top:4px;padding:2px 10px;background:#eef2ff;color:#3730a3;border-radius:6px;font-size:11px;font-weight:600;">${itemVariant}</span>
+          </td>
+          <td style="padding:14px 14px;border-bottom:1px solid #e2e8f0;text-align:center;color:#0f172a;font-weight:600;font-size:14px;">${itemQty}</td>
+          <td style="padding:14px 14px;border-bottom:1px solid #e2e8f0;text-align:right;color:#64748b;font-size:14px;">₹${itemPrice}</td>
+          <td style="padding:14px 14px;border-bottom:1px solid #e2e8f0;text-align:right;color:${accentHex};font-weight:700;font-size:15px;">₹${itemTotal}</td>
+        </tr>`;
+  });
+  return html;
+}
+
+function emailDocumentWrapper(preheader, innerTableRows) {
+  const safePre = escapeHtml(preheader);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${safePre}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px rgba(15,23,42,0.08);border:1px solid #e2e8f0;">
+          ${innerTableRows}
+        </table>
+        <p style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:11px;color:#94a3b8;margin:16px 0 0 0;max-width:600px;">
+          Boult India · ${SITE_URL.replace('https://', '')}
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function blockHeaderGradient(title, subtitle, badgeHtml = '') {
+  const t = escapeHtml(title);
+  const s = escapeHtml(subtitle);
+  return `
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 45%,#c026d3 100%);padding:36px 28px;text-align:center;">
+              <img src="${LOGO_URL}" alt="Boult India" width="140" height="auto" style="height:56px;width:auto;margin:0 auto 20px auto;display:block;border:0;background:#ffffff;border-radius:8px;padding:6px 10px;" />
+              ${badgeHtml}
+              <h1 style="margin:0;color:#ffffff;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1.25;">${t}</h1>
+              <p style="margin:12px 0 0 0;color:rgba(255,255,255,0.92);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.5;">${s}</p>
+            </td>
+          </tr>`;
+}
+
+function blockGreeting(leadHtml) {
+  return `
+          <tr>
+            <td style="padding:28px 28px 8px 28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              ${leadHtml}
+            </td>
+          </tr>`;
+}
+
+function blockOrderSummaryCard(orderId, labelRight, valueRight, accentBorder = '#4f46e5') {
+  return `
+          <tr>
+            <td style="padding:8px 28px 20px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-radius:12px;border:1px solid #e2e8f0;border-left:4px solid ${accentBorder};">
+                <tr>
+                  <td style="padding:20px 22px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="vertical-align:top;width:50%;">
+                          <p style="margin:0;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Order reference</p>
+                          <p style="margin:6px 0 0 0;color:#0f172a;font-size:18px;font-weight:700;font-family:ui-monospace,monospace;">#${escapeHtml(orderId)}</p>
+                        </td>
+                        <td style="vertical-align:top;width:50%;text-align:right;">
+                          <p style="margin:0;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${escapeHtml(labelRight)}</p>
+                          <p style="margin:6px 0 0 0;color:${accentBorder};font-size:26px;font-weight:800;letter-spacing:-0.02em;">${valueRight}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`;
+}
+
+function blockSectionTitle(text, accent = '#4f46e5') {
+  return escapeHtml(text);
+}
+
+function blockItemsTable(itemsHTML) {
+  return `
+          <tr>
+            <td style="padding:0 28px 24px 28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <p style="margin:0 0 12px 0;color:#0f172a;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #e0e7ff;padding-bottom:8px;">${blockSectionTitle('Order items')}</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                <thead>
+                  <tr style="background:linear-gradient(135deg,#312e81 0%,#4c1d95 100%);">
+                    <th style="padding:12px 14px;text-align:left;font-size:11px;color:#e0e7ff;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Product</th>
+                    <th style="padding:12px 14px;text-align:center;font-size:11px;color:#e0e7ff;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Qty</th>
+                    <th style="padding:12px 14px;text-align:right;font-size:11px;color:#e0e7ff;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Price</th>
+                    <th style="padding:12px 14px;text-align:right;font-size:11px;color:#e0e7ff;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>${itemsHTML}</tbody>
+              </table>
+            </td>
+          </tr>`;
+}
+
+function blockDeliveryAddress(customer, address, city, state, pincode, phone) {
+  return `
+          <tr>
+            <td style="padding:0 28px 24px 28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <p style="margin:0 0 12px 0;color:#0f172a;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #e0e7ff;padding-bottom:8px;">${blockSectionTitle('Delivery address')}</p>
+              <div style="background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);padding:20px 22px;border-radius:12px;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;">
+                <p style="margin:0;color:#0f172a;font-size:15px;line-height:1.7;">
+                  <strong style="color:#1d4ed8;">${escapeHtml(customer)}</strong><br>
+                  ${escapeHtml(address)}<br>
+                  ${escapeHtml(city)}, ${escapeHtml(state)} — ${escapeHtml(pincode)}<br>
+                  <span style="color:#64748b;font-size:14px;">Phone</span> <strong>${escapeHtml(phone)}</strong>
+                </p>
+              </div>
+            </td>
+          </tr>`;
+}
+
+function blockNoticeShippingPending() {
+  return `
+          <tr>
+            <td style="padding:0 28px 24px 28px;">
+              <div style="background:#fffbeb;border:1px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:12px;padding:18px 20px;">
+                <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                  <strong style="display:block;margin-bottom:6px;font-size:15px;">Shipping charges</strong>
+                  Final delivery charges may be added based on your location. You will receive an updated invoice by email once your order is verified.
+                </p>
+              </div>
+            </td>
+          </tr>`;
+}
+
+function blockDualCtas(trackUrl, accountUrl, primaryLabel, secondaryLabel) {
+  return `
+          <tr>
+            <td style="padding:0 28px 28px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:6px;width:50%;vertical-align:top;">
+                    <a href="${trackUrl}" style="display:block;text-align:center;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#ffffff !important;padding:14px 16px;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 4px 14px rgba(79,70,229,0.35);">${escapeHtml(primaryLabel)}</a>
+                  </td>
+                  <td style="padding:6px;width:50%;vertical-align:top;">
+                    <a href="${accountUrl}" style="display:block;text-align:center;background:#0f172a;color:#ffffff !important;padding:14px 16px;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${escapeHtml(secondaryLabel)}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`;
+}
+
+function blockSupport(accent = '#4f46e5') {
+  return `
+          <tr>
+            <td style="padding:0 28px 28px 28px;">
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;text-align:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                <p style="margin:0 0 8px 0;color:#475569;font-size:14px;font-weight:600;">Need help with your order?</p>
+                <p style="margin:0;color:#0f172a;font-size:14px;line-height:1.6;">
+                  <a href="mailto:${SUPPORT_EMAIL}" style="color:${accent};text-decoration:none;font-weight:600;">${SUPPORT_EMAIL}</a>
+                </p>
+              </div>
+            </td>
+          </tr>`;
+}
+
+function blockFooterLegal() {
+  return `
+          <tr>
+            <td style="background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);padding:28px 24px;text-align:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <img src="${LOGO_URL}" alt="" width="120" style="height:44px;width:auto;opacity:0.9;margin:0 auto 12px auto;display:block;border:0;" />
+              <p style="margin:0 0 6px 0;color:#e2e8f0;font-size:13px;font-weight:600;">Boult India</p>
+              <p style="margin:0 0 16px 0;color:#94a3b8;font-size:12px;line-height:1.5;">Premium vehicle care products</p>
+              <p style="margin:0 0 10px 0;">
+                <a href="${SITE_URL}" style="color:#a5b4fc;text-decoration:none;font-size:12px;font-weight:600;margin:0 8px;">Website</a>
+                <span style="color:#475569;">·</span>
+                <a href="${SITE_URL}/contact" style="color:#a5b4fc;text-decoration:none;font-size:12px;font-weight:600;margin:0 8px;">Contact</a>
+                <span style="color:#475569;">·</span>
+                <a href="${SITE_URL}/return-refund-policy" style="color:#a5b4fc;text-decoration:none;font-size:12px;font-weight:600;margin:0 8px;">Returns</a>
+              </p>
+              <p style="margin:16px 0 0 0;color:#64748b;font-size:11px;">© ${new Date().getFullYear()} Boult India. All rights reserved.</p>
+              <p style="margin:8px 0 0 0;color:#475569;font-size:10px;line-height:1.4;">This is an automated message. Please do not reply directly to this email.</p>
+            </td>
+          </tr>`;
+}
+
 const sendOrderConfirmation = async (orderData) => {
   try {
-    const { customer, email, id, amount, items, address, city, state, pincode, phone, shippingCharges = 0 } = orderData;
-    
+    const {
+      customer,
+      email,
+      id,
+      amount,
+      items,
+      address,
+      city,
+      state,
+      pincode,
+      phone,
+      shippingCharges = 0,
+    } = orderData;
+
     console.log('📧 Attempting to send order confirmation email...');
     console.log('📦 Order ID:', id);
     console.log('📧 To:', email);
-    console.log('🔧 GMAIL_USER:', process.env.GMAIL_USER ? 'SET' : 'NOT SET');
-    console.log('🔧 GMAIL_APP_PASSWORD:', process.env.GMAIL_APP_PASSWORD ? 'SET' : 'NOT SET');
-    console.log('🔧 HOSTINGER_EMAIL:', process.env.HOSTINGER_EMAIL ? 'SET' : 'NOT SET');
-    console.log('🔧 HOSTINGER_PASSWORD:', process.env.HOSTINGER_PASSWORD ? 'SET' : 'NOT SET');
-    
-    // Build items HTML with better styling
-    let itemsHTML = '';
-    items.forEach((item, index) => {
-      const itemName = item.name || '';
-      const itemVariant = item.variant || 'Default';
-      const itemQty = item.quantity || 1;
-      const itemPrice = (item.price || 0).toFixed(2);
-      const itemTotal = ((item.price || 0) * itemQty).toFixed(2);
-      const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-      
-      itemsHTML += `
-        <tr style='background-color: ${bgColor};'>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb;'>
-            <strong style='color: #333; font-size: 14px;'>${itemName}</strong><br>
-            <small style='color: #6b7280; font-size: 12px;'>Variant: <span style='background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600;'>${itemVariant}</span></small>
-          </td>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #333; font-weight: 600; font-size: 14px;'>${itemQty}</td>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #6b7280; font-size: 14px;'>₹${itemPrice}</td>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #ff6b35; font-weight: bold; font-size: 15px;'>₹${itemTotal}</td>
-        </tr>
-      `;
-    });
-    
-    const formattedAmount = amount.toFixed(2);
-    
-    // Email HTML with Boult India Logo and Professional Structure
-    const emailHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Order Confirmation - Boult India</title>
-</head>
-<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f4;'>
-    <table width='100%' cellpadding='0' cellspacing='0' style='background-color: #f4f4f4; padding: 20px 0;'>
-        <tr>
-            <td align='center'>
-                <!-- Main Container -->
-                <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;'>
-                    
-                    <!-- Header with Logo and Gradient -->
-                    <tr>
-                        <td style='background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); padding: 40px 30px; text-align: center;'>
-                            <!-- Boult India Logo -->
-                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 70px; width: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;' />
-                            <h1 style='color: #ffffff; margin: 0; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.2);'>Order Confirmed! 🎉</h1>
-                            <p style='color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;'>Thank you for choosing Boult India</p>
-                        </td>
-                    </tr>
 
-                    <!-- Greeting -->
-                    <tr>
-                        <td style='padding: 30px 30px 20px 30px;'>
-                            <p style='font-size: 18px; color: #333; margin: 0 0 10px 0;'>Hi <strong style='color: #ff6b35;'>${customer}</strong>,</p>
-                            <p style='font-size: 15px; color: #666; margin: 0; line-height: 1.6;'>Your order has been successfully placed and is being processed. We'll notify you once it's shipped!</p>
-                        </td>
-                    </tr>
+    const itemsHTML = buildOrderItemsRows(items, '#ea580c');
+    const formattedAmount = Number(amount).toFixed(2);
+    const badge =
+      '<span style="display:inline-block;margin-bottom:14px;padding:6px 14px;background:rgba(255,255,255,0.2);border-radius:999px;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.04em;">ORDER CONFIRMED</span>';
 
-                    <!-- Order Summary Box -->
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <table width='100%' cellpadding='0' cellspacing='0' style='background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 100%); border-radius: 10px; border: 2px solid #ff6b35; overflow: hidden;'>
-                                <tr>
-                                    <td style='padding: 20px;'>
-                                        <table width='100%'>
-                                            <tr>
-                                                <td style='width: 50%; vertical-align: top;'>
-                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Order ID</p>
-                                                    <p style='margin: 5px 0 0 0; color: #333; font-size: 20px; font-weight: bold;'>#${id}</p>
-                                                </td>
-                                                <td style='width: 50%; text-align: right; vertical-align: top;'>
-                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Total Amount</p>
-                                                    <p style='margin: 5px 0 0 0; color: #ff6b35; font-size: 28px; font-weight: bold;'>₹${formattedAmount}</p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+    const inner =
+      blockHeaderGradient('Thank you for your order', 'We have received your purchase and will keep you updated.', badge) +
+      blockGreeting(
+        `<p style="margin:0 0 8px 0;font-size:17px;color:#0f172a;">Hi <strong style="color:#4f46e5;">${escapeHtml(customer)}</strong>,</p>
+         <p style="margin:0;color:#475569;font-size:15px;line-height:1.65;">Your order is confirmed and is being processed. You can track progress anytime from your account.</p>`
+      ) +
+      blockOrderSummaryCard(id, 'Order total', `₹${formattedAmount}`, '#ea580c') +
+      blockItemsTable(itemsHTML) +
+      blockDeliveryAddress(customer, address, city, state, pincode, phone) +
+      (shippingCharges === 0 ? blockNoticeShippingPending() : '') +
+      blockDualCtas(
+        `${SITE_URL}/track-order`,
+        `${SITE_URL}/account`,
+        'Track order',
+        'View in account'
+      ) +
+      blockSupport('#4f46e5') +
+      blockFooterLegal();
 
-                    <!-- Order Items Section -->
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #ff6b35; padding-bottom: 10px;'>📦 Order Items</h3>
-                            <table width='100%' cellpadding='0' cellspacing='0' style='border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>
-                                <thead>
-                                    <tr style='background: linear-gradient(135deg, #333 0%, #555 100%);'>
-                                        <th style='padding: 14px 12px; text-align: left; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Product</th>
-                                        <th style='padding: 14px 12px; text-align: center; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Qty</th>
-                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Price</th>
-                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${itemsHTML}</tbody>
-                            </table>
-                        </td>
-                    </tr>
+    const emailHTML = emailDocumentWrapper(`Order ${id} confirmed · Boult India`, inner);
 
-                    <!-- Delivery Address Section -->
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #ff6b35; padding-bottom: 10px;'>🚚 Delivery Address</h3>
-                            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-                                <p style='margin: 0; color: #333; font-size: 15px; line-height: 1.8;'>
-                                    <strong style='color: #0ea5e9; font-size: 16px;'>${customer}</strong><br>
-                                    ${address}<br>
-                                    ${city}, ${state} - ${pincode}<br>
-                                    📱 Phone: <strong>${phone}</strong>
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- Delivery Charges Notice -->
-                    ${shippingCharges === 0 ? `
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <div style='background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-                                <p style='margin: 0; color: #92400e; font-size: 15px; line-height: 1.6;'>
-                                    <strong style='font-size: 16px;'>⚠️ Important Notice:</strong><br>
-                                    Delivery charges may apply based on your location. Our team will verify and update the final amount shortly. You will receive a confirmation email with the updated invoice.
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-                    ` : ''}
-
-                    <!-- Action Buttons -->
-                    <tr>
-                        <td style='padding: 0 30px 30px 30px; text-align: center;'>
-                            <table width='100%' cellpadding='0' cellspacing='0'>
-                                <tr>
-                                    <td style='padding: 10px;'>
-                                        <a href='https://boultindia.com/track-order' style='display: block; background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(255,107,53,0.3); transition: all 0.3s;'>🔍 Track Your Order</a>
-                                    </td>
-                                    <td style='padding: 10px;'>
-                                        <a href='https://boultindia.com/account' style='display: block; background: linear-gradient(135deg, #333 0%, #555 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: all 0.3s;'>📄 View Invoice</a>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <!-- Support Section -->
-                    <tr>
-                        <td style='padding: 0 30px 30px 30px;'>
-                            <div style='background-color: #f9fafb; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;'>
-                                <p style='margin: 0 0 10px 0; color: #666; font-size: 14px;'>Need help with your order?</p>
-                                <p style='margin: 0; color: #333; font-size: 14px;'>
-                                    📧 Email: <a href='mailto:support@boultindia.com' style='color: #ff6b35; text-decoration: none; font-weight: 600;'>support@boultindia.com</a><br>
-                                    📞 Phone: <strong>+91-XXXXXXXXXX</strong>
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- Footer -->
-                    <tr>
-                        <td style='background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 30px; text-align: center;'>
-                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 50px; width: auto; margin-bottom: 15px; opacity: 0.9; display: block; margin-left: auto; margin-right: auto;' />
-                            <p style='margin: 0 0 10px 0; color: #d1d5db; font-size: 14px; font-weight: 600;'>Boult India - Premium Vehicle Care Products</p>
-                            <p style='margin: 0 0 15px 0; color: #9ca3af; font-size: 12px;'>Quality products for your vehicle's care and maintenance</p>
-                            <div style='margin: 15px 0;'>
-                                <a href='https://boultindia.com' style='color: #ff6b35; text-decoration: none; margin: 0 10px; font-size: 13px; font-weight: 600;'>Visit Website</a>
-                                <span style='color: #6b7280;'>|</span>
-                                <a href='https://boultindia.com/contact' style='color: #ff6b35; text-decoration: none; margin: 0 10px; font-size: 13px; font-weight: 600;'>Contact Us</a>
-                                <span style='color: #6b7280;'>|</span>
-                                <a href='https://boultindia.com/return-refund-policy' style='color: #ff6b35; text-decoration: none; margin: 0 10px; font-size: 13px; font-weight: 600;'>Return Policy</a>
-                            </div>
-                            <p style='margin: 15px 0 0 0; color: #6b7280; font-size: 11px;'>© 2024 Boult India. All rights reserved.</p>
-                            <p style='margin: 5px 0 0 0; color: #6b7280; font-size: 10px;'>This is an automated email. Please do not reply to this message.</p>
-                        </td>
-                    </tr>
-
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-    `;
-    
-    // Create transporter
     const transporter = createTransporter();
-    
-    // Email options
     const fromEmail = process.env.GMAIL_USER || process.env.HOSTINGER_EMAIL || 'orders@boultindia.com';
     const mailOptions = {
-      from: `"Boult India Orders" <${fromEmail}>`,
+      from: `"Boult India" <${fromEmail}>`,
       to: email,
-      cc: 'vtechmultisolutions@gmail.com',
+      cc: ADMIN_CC,
       replyTo: fromEmail,
-      subject: `Order Confirmation - ${id} | Boult India`,
-      html: emailHTML
+      subject: `Order confirmed · ${id} · Boult India`,
+      html: emailHTML,
     };
-    
-    // Send email
+
     const info = await transporter.sendMail(mailOptions);
-    
     console.log('✅ Email sent successfully!');
     console.log('📧 Message ID:', info.messageId);
-    
     return { success: true, messageId: info.messageId };
-    
   } catch (error) {
     console.error('❌ Error sending order confirmation email:');
     console.error('Error message:', error.message);
@@ -271,235 +336,83 @@ const sendOrderConfirmation = async (orderData) => {
   }
 };
 
-// Send Invoice Email with Shipping Charges Update
 const sendInvoiceWithShippingCharges = async (orderData) => {
   try {
-    const { customer, email, id, amount, shippingCharges, items, address, city, state, pincode, phone } = orderData;
-    
+    const { customer, email, id, amount, shippingCharges, items, address, city, state, pincode, phone } =
+      orderData;
+
     console.log('📧 Sending invoice email with shipping charges...');
     console.log('📦 Order ID:', id);
     console.log('💰 Shipping Charges:', shippingCharges);
-    
-    // Build items HTML
-    let itemsHTML = '';
-    items.forEach((item, index) => {
-      const itemName = item.name || '';
-      const itemVariant = item.variant || 'Default';
-      const itemQty = item.quantity || 1;
-      const itemPrice = (item.price || 0).toFixed(2);
-      const itemTotal = ((item.price || 0) * itemQty).toFixed(2);
-      const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-      
-      itemsHTML += `
-        <tr style='background-color: ${bgColor};'>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb;'>
-            <strong style='color: #333; font-size: 14px;'>${itemName}</strong><br>
-            <small style='color: #6b7280; font-size: 12px;'>Variant: <span style='background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600;'>${itemVariant}</span></small>
-          </td>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #333; font-weight: 600; font-size: 14px;'>${itemQty}</td>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #6b7280; font-size: 14px;'>₹${itemPrice}</td>
-          <td style='padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #ff6b35; font-weight: bold; font-size: 15px;'>₹${itemTotal}</td>
-        </tr>
-      `;
-    });
-    
-    const subtotal = amount;
-    const grandTotal = amount + (shippingCharges || 0);
-    
-    // Email HTML with Invoice
-    const emailHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Invoice - Boult India</title>
-</head>
-<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f4;'>
-    <table width='100%' cellpadding='0' cellspacing='0' style='background-color: #f4f4f4; padding: 20px 0;'>
-        <tr>
-            <td align='center'>
-                <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;'>
-                    
-                    <!-- Header -->
-                    <tr>
-                        <td style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center;'>
-                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 70px; width: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;' />
-                            <h1 style='color: #ffffff; margin: 0; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.2);'>Invoice Updated! ✅</h1>
-                            <p style='color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;'>Your order has been verified with final charges</p>
-                        </td>
-                    </tr>
 
-                    <!-- Greeting -->
-                    <tr>
-                        <td style='padding: 30px 30px 20px 30px;'>
-                            <p style='font-size: 18px; color: #333; margin: 0 0 10px 0;'>Hi <strong style='color: #10b981;'>${customer}</strong>,</p>
-                            <p style='font-size: 15px; color: #666; margin: 0; line-height: 1.6;'>Your order has been verified and shipping charges have been added. Here's your updated invoice:</p>
-                        </td>
-                    </tr>
+    const itemsHTML = buildOrderItemsRows(items, '#059669');
+    const subtotal = Number(amount);
+    const ship = Number(shippingCharges || 0);
+    const grandTotal = subtotal + ship;
 
-                    <!-- Order Summary -->
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <table width='100%' cellpadding='0' cellspacing='0' style='background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 10px; border: 2px solid #10b981; overflow: hidden;'>
-                                <tr>
-                                    <td style='padding: 20px;'>
-                                        <table width='100%'>
-                                            <tr>
-                                                <td style='width: 50%; vertical-align: top;'>
-                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Invoice #</p>
-                                                    <p style='margin: 5px 0 0 0; color: #333; font-size: 20px; font-weight: bold;'>${id}</p>
-                                                </td>
-                                                <td style='width: 50%; text-align: right; vertical-align: top;'>
-                                                    <p style='margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;'>Final Amount</p>
-                                                    <p style='margin: 5px 0 0 0; color: #10b981; font-size: 28px; font-weight: bold;'>₹${grandTotal.toFixed(2)}</p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+    const badge =
+      '<span style="display:inline-block;margin-bottom:14px;padding:6px 14px;background:rgba(255,255,255,0.22);border-radius:999px;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.04em;">INVOICE UPDATED</span>';
 
-                    <!-- Order Items -->
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #10b981; padding-bottom: 10px;'>📦 Order Items</h3>
-                            <table width='100%' cellpadding='0' cellspacing='0' style='border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>
-                                <thead>
-                                    <tr style='background: linear-gradient(135deg, #333 0%, #555 100%);'>
-                                        <th style='padding: 14px 12px; text-align: left; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Product</th>
-                                        <th style='padding: 14px 12px; text-align: center; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Qty</th>
-                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Price</th>
-                                        <th style='padding: 14px 12px; text-align: right; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;'>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${itemsHTML}</tbody>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <!-- Delivery Address -->
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <h3 style='color: #333; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #10b981; padding-bottom: 10px;'>🚚 Delivery Address</h3>
-                            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-                                <p style='margin: 0; color: #333; font-size: 15px; line-height: 1.8;'>
-                                    <strong style='color: #0ea5e9; font-size: 16px;'>${customer}</strong><br>
-                                    ${address}<br>
-                                    ${city}, ${state} - ${pincode}<br>
-                                    📱 Phone: <strong>${phone}</strong>
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- Invoice Summary -->
-                    <tr>
-                        <td style='padding: 0 30px 20px 30px;'>
-                            <div style='background-color: #f9fafb; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb;'>
-                                <div style='display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;'>
-                                    <table width='100%'>
-                                        <tr>
-                                            <td style='padding: 10px 0;'>
-                                                <span style='color: #666; font-size: 15px; font-weight: 600;'>Subtotal:</span>
-                                            </td>
-                                            <td style='text-align: right; padding: 10px 0;'>
-                                                <span style='color: #333; font-size: 15px; font-weight: bold;'>₹${subtotal.toFixed(2)}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style='padding: 10px 0; border-top: 1px solid #e5e7eb;'>
-                                                <span style='color: #666; font-size: 15px; font-weight: 600;'>Shipping Charges:</span>
-                                            </td>
-                                            <td style='text-align: right; padding: 10px 0; border-top: 1px solid #e5e7eb;'>
-                                                <span style='color: #10b981; font-size: 15px; font-weight: bold;'>₹${(shippingCharges || 0).toFixed(2)}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style='padding: 15px 0; border-top: 2px solid #10b981;'>
-                                                <span style='color: #333; font-size: 18px; font-weight: bold;'>Grand Total:</span>
-                                            </td>
-                                            <td style='text-align: right; padding: 15px 0; border-top: 2px solid #10b981;'>
-                                                <span style='color: #10b981; font-size: 22px; font-weight: bold;'>₹${grandTotal.toFixed(2)}</span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- Action Buttons -->
-                    <tr>
-                        <td style='padding: 0 30px 30px 30px; text-align: center;'>
-                            <table width='100%' cellpadding='0' cellspacing='0'>
-                                <tr>
-                                    <td style='padding: 10px;'>
-                                        <a href='https://boultindia.com/track-order' style='display: block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(16,185,129,0.3);'>🔍 Track Order</a>
-                                    </td>
-                                    <td style='padding: 10px;'>
-                                        <a href='https://boultindia.com/account' style='display: block; background: linear-gradient(135deg, #333 0%, #555 100%); color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);'>📄 Download Invoice</a>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <!-- Support Section -->
-                    <tr>
-                        <td style='padding: 0 30px 30px 30px;'>
-                            <div style='background-color: #f9fafb; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb; text-align: center;'>
-                                <p style='margin: 0 0 10px 0; color: #666; font-size: 14px;'>Need help with your order?</p>
-                                <p style='margin: 0; color: #333; font-size: 14px;'>
-                                    📧 Email: <a href='mailto:support@boultindia.com' style='color: #10b981; text-decoration: none; font-weight: 600;'>support@boultindia.com</a><br>
-                                    📞 Phone: <strong>+91-XXXXXXXXXX</strong>
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- Footer -->
-                    <tr>
-                        <td style='background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 30px; text-align: center;'>
-                            <img src='https://boultindia.com/logos/logo1.png' alt='Boult India' style='height: 50px; width: auto; margin-bottom: 15px; opacity: 0.9; display: block; margin-left: auto; margin-right: auto;' />
-                            <p style='margin: 0 0 10px 0; color: #d1d5db; font-size: 14px; font-weight: 600;'>Boult India - Premium Vehicle Care Products</p>
-                            <p style='margin: 0 0 15px 0; color: #9ca3af; font-size: 12px;'>Quality products for your vehicle's care and maintenance</p>
-                            <p style='margin: 15px 0 0 0; color: #6b7280; font-size: 11px;'>© 2024 Boult India. All rights reserved.</p>
-                        </td>
-                    </tr>
-
-                </table>
+    const inner =
+      blockHeaderGradient(
+        'Your invoice has been updated',
+        'Shipping charges are now included. Please review the summary below.',
+        badge
+      ) +
+      blockGreeting(
+        `<p style="margin:0 0 8px 0;font-size:17px;color:#0f172a;">Hi <strong style="color:#059669;">${escapeHtml(customer)}</strong>,</p>
+         <p style="margin:0;color:#475569;font-size:15px;line-height:1.65;">Your order <strong style="color:#0f172a;">#${escapeHtml(id)}</strong> has been verified. The amount below includes delivery charges.</p>`
+      ) +
+      blockOrderSummaryCard(id, 'Amount payable', `₹${grandTotal.toFixed(2)}`, '#059669') +
+      blockItemsTable(itemsHTML) +
+      blockDeliveryAddress(customer, address, city, state, pincode, phone) +
+      `
+          <tr>
+            <td style="padding:0 28px 24px 28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <p style="margin:0 0 12px 0;color:#0f172a;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #d1fae5;padding-bottom:8px;">Payment summary</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#ffffff;">
+                <tr>
+                  <td style="padding:14px 18px;color:#64748b;font-size:14px;font-weight:600;border-bottom:1px solid #f1f5f9;">Subtotal</td>
+                  <td style="padding:14px 18px;text-align:right;color:#0f172a;font-size:14px;font-weight:700;border-bottom:1px solid #f1f5f9;">₹${subtotal.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 18px;color:#64748b;font-size:14px;font-weight:600;border-bottom:1px solid #f1f5f9;">Shipping</td>
+                  <td style="padding:14px 18px;text-align:right;color:#059669;font-size:14px;font-weight:700;border-bottom:1px solid #f1f5f9;">₹${ship.toFixed(2)}</td>
+                </tr>
+                <tr style="background:linear-gradient(90deg,#ecfdf5 0%,#f0fdf4 100%);">
+                  <td style="padding:18px 18px;color:#064e3b;font-size:16px;font-weight:800;">Total payable</td>
+                  <td style="padding:18px 18px;text-align:right;color:#047857;font-size:22px;font-weight:800;">₹${grandTotal.toFixed(2)}</td>
+                </tr>
+              </table>
+              <p style="margin:12px 0 0 0;color:#64748b;font-size:12px;line-height:1.5;">If anything looks incorrect, contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color:#4f46e5;font-weight:600;text-decoration:none;">${SUPPORT_EMAIL}</a>.</p>
             </td>
-        </tr>
-    </table>
-</body>
-</html>
-    `;
-    
-    // Create transporter
+          </tr>` +
+      blockDualCtas(
+        `${SITE_URL}/track-order`,
+        `${SITE_URL}/account`,
+        'Track shipment',
+        'Open invoice in account'
+      ) +
+      blockSupport('#059669') +
+      blockFooterLegal();
+
+    const emailHTML = emailDocumentWrapper(`Updated invoice ${id} · Boult India`, inner);
+
     const transporter = createTransporter();
-    
-    // Email options
     const fromEmail = process.env.GMAIL_USER || process.env.HOSTINGER_EMAIL || 'orders@boultindia.com';
     const mailOptions = {
-      from: `"Boult India Orders" <${fromEmail}>`,
+      from: `"Boult India" <${fromEmail}>`,
       to: email,
-      cc: 'vtechmultisolutions@gmail.com',
+      cc: ADMIN_CC,
       replyTo: fromEmail,
-      subject: `Invoice Updated - ${id} | Boult India`,
-      html: emailHTML
+      subject: `Invoice updated · ${id} · Boult India`,
+      html: emailHTML,
     };
-    
-    // Send email
+
     const info = await transporter.sendMail(mailOptions);
-    
     console.log('✅ Invoice email sent successfully!');
     console.log('📧 Message ID:', info.messageId);
-    
     return { success: true, messageId: info.messageId };
-    
   } catch (error) {
     console.error('❌ Error sending invoice email:');
     console.error('Error message:', error.message);
@@ -507,97 +420,87 @@ const sendInvoiceWithShippingCharges = async (orderData) => {
   }
 };
 
-// Send Contact Form Email
 async function sendContactEmail(contactData) {
   const { name, email, phone, enquiryType, subject, message } = contactData;
-  
+
   const enquiryTypeLabels = {
-    general: 'General Inquiry',
-    distributorship: 'Enquiry for Distributorship',
-    orders: 'Contact for Orders Query',
-    technical: 'Technical Support',
-    bulk: 'Bulk Orders'
+    general: 'General inquiry',
+    distributorship: 'Distributorship',
+    orders: 'Orders',
+    technical: 'Technical support',
+    bulk: 'Bulk orders',
   };
 
-  // Create transporter
   const transporter = createTransporter();
+  const fromAddr = process.env.GMAIL_USER || process.env.HOSTINGER_EMAIL || 'orders@boultindia.com';
+
+  const inner =
+    blockHeaderGradient(
+      'New website enquiry',
+      enquiryTypeLabels[enquiryType] || 'Contact form',
+      '<span style="display:inline-block;margin-bottom:14px;padding:6px 14px;background:rgba(255,255,255,0.2);border-radius:999px;color:#fff;font-size:12px;font-weight:700;">CONTACT</span>'
+    ) +
+    `
+          <tr>
+            <td style="padding:24px 28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 10px;">
+                <tr>
+                  <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-left:4px solid #4f46e5;">
+                    <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Name</p>
+                    <p style="margin:0;color:#0f172a;font-size:15px;font-weight:600;">${escapeHtml(name)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-left:4px solid #4f46e5;">
+                    <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Email</p>
+                    <p style="margin:0;"><a href="mailto:${escapeHtml(email)}" style="color:#4f46e5;font-size:15px;font-weight:600;text-decoration:none;">${escapeHtml(email)}</a></p>
+                  </td>
+                </tr>
+                ${
+                  phone
+                    ? `<tr>
+                  <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-left:4px solid #4f46e5;">
+                    <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Phone</p>
+                    <p style="margin:0;"><a href="tel:${escapeHtml(phone)}" style="color:#0f172a;font-size:15px;font-weight:600;text-decoration:none;">${escapeHtml(phone)}</a></p>
+                  </td>
+                </tr>`
+                    : ''
+                }
+                <tr>
+                  <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-left:4px solid #4f46e5;">
+                    <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Subject</p>
+                    <p style="margin:0;color:#0f172a;font-size:15px;font-weight:600;">${escapeHtml(subject)}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;">
+                    <p style="margin:0 0 8px 0;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Message</p>
+                    <p style="margin:0;color:#334155;font-size:14px;line-height:1.65;white-space:pre-wrap;">${escapeHtml(message)}</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:20px 0 0 0;text-align:center;color:#94a3b8;font-size:12px;">Received ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (IST)</p>
+            </td>
+          </tr>` +
+    blockFooterLegal();
+
+  const subjectClean = String(subject || '')
+    .replace(/[\r\n]+/g, ' ')
+    .trim()
+    .slice(0, 120);
 
   const mailOptions = {
-    from: `"Boult India Contact" <${process.env.HOSTINGER_EMAIL}>`,
-    to: 'vtechmultisolutions@gmail.com',
-    cc: process.env.HOSTINGER_EMAIL,
-    subject: `[${enquiryTypeLabels[enquiryType] || 'Contact Form'}] ${subject}`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-          .info-row { margin: 15px 0; padding: 15px; background: white; border-left: 4px solid #f97316; border-radius: 5px; }
-          .label { font-weight: bold; color: #f97316; margin-bottom: 5px; }
-          .value { color: #333; }
-          .message-box { background: white; padding: 20px; border-radius: 5px; margin-top: 20px; border: 1px solid #e5e7eb; }
-          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #6b7280; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 style="margin: 0;">📧 New Contact Form Submission</h1>
-            <p style="margin: 10px 0 0 0; opacity: 0.9;">${enquiryTypeLabels[enquiryType] || 'Contact Form'}</p>
-          </div>
-          
-          <div class="content">
-            <div class="info-row">
-              <div class="label">👤 Name:</div>
-              <div class="value">${name}</div>
-            </div>
-            
-            <div class="info-row">
-              <div class="label">📧 Email:</div>
-              <div class="value"><a href="mailto:${email}" style="color: #f97316;">${email}</a></div>
-            </div>
-            
-            ${phone ? `
-            <div class="info-row">
-              <div class="label">📱 Phone:</div>
-              <div class="value"><a href="tel:${phone}" style="color: #f97316;">${phone}</a></div>
-            </div>
-            ` : ''}
-            
-            <div class="info-row">
-              <div class="label">📋 Enquiry Type:</div>
-              <div class="value">${enquiryTypeLabels[enquiryType] || 'General Inquiry'}</div>
-            </div>
-            
-            <div class="info-row">
-              <div class="label">📌 Subject:</div>
-              <div class="value">${subject}</div>
-            </div>
-            
-            <div class="message-box">
-              <div class="label">💬 Message:</div>
-              <div class="value" style="margin-top: 10px; white-space: pre-wrap;">${message}</div>
-            </div>
-            
-            <div class="footer">
-              <p><strong>Boult India</strong></p>
-              <p>This email was sent from the contact form on boultindia.com</p>
-              <p>Received on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
+    from: `"Boult India Website" <${fromAddr}>`,
+    to: ADMIN_CC,
+    cc: fromAddr,
+    replyTo: email,
+    subject: `[${enquiryTypeLabels[enquiryType] || 'Contact'}] ${subjectClean}`,
+    html: emailDocumentWrapper(`Enquiry: ${subjectClean}`, inner),
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Contact email sent to vtechmultisolutions@gmail.com`);
+    console.log(`✅ Contact email sent to ${ADMIN_CC}`);
     return { success: true };
   } catch (error) {
     console.error('❌ Error sending contact email:', error);
@@ -605,8 +508,145 @@ async function sendContactEmail(contactData) {
   }
 }
 
+async function sendStatusUpdateEmail(order) {
+  const { status, customer, email, id, items, amount, shippingCharges, courierPartner, trackingNumber, dispatchDateTime, deliveredDateTime } = order;
+
+  const statusConfig = {
+    processing: {
+      subject: `Your Order #${id} is Being Processed 📦`,
+      color: '#2563eb',
+      icon: '⚙️',
+      title: 'Order is Being Processed',
+      message: 'Great news! Your order is now being processed by our team. We\'ll notify you once it\'s dispatched.',
+    },
+    shipped: {
+      subject: `Your Order #${id} Has Been Shipped 🚚`,
+      color: '#0ea5e9',
+      icon: '🚚',
+      title: 'Order Shipped!',
+      message: `Your order is on its way! ${courierPartner ? `Shipped via <strong>${courierPartner}</strong>.` : ''} ${trackingNumber ? `Tracking ID: <strong>${trackingNumber}</strong>` : ''}`,
+    },
+    delivered: {
+      subject: `Your Order #${id} Has Been Delivered ✅`,
+      color: '#16a34a',
+      icon: '✅',
+      title: 'Order Delivered!',
+      message: 'Your order has been successfully delivered. We hope you love your Boult India products! Please leave a review.',
+    },
+    cancelled: {
+      subject: `Your Order #${id} Has Been Cancelled ❌`,
+      color: '#ef4444',
+      icon: '❌',
+      title: 'Order Cancelled',
+      message: 'Your order has been cancelled. If you have any questions, please contact our support team.',
+    },
+  };
+
+  const config = statusConfig[status];
+  if (!config) return { success: false, error: 'No email template for this status' };
+
+  const grandTotal = (amount || 0) + (shippingCharges || 0);
+
+  const itemsHtml = items && items.length > 0
+    ? items.map((item, i) => `
+      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
+        <td style="padding:12px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#0f172a;">${escapeHtml(item.name)}</td>
+        <td style="padding:12px 14px;border-bottom:1px solid #e2e8f0;text-align:center;font-size:13px;color:#64748b;">${item.quantity}</td>
+        <td style="padding:12px 14px;border-bottom:1px solid #e2e8f0;text-align:right;font-size:13px;font-weight:700;color:${config.color};">₹${((item.price || 0) * item.quantity).toLocaleString('en-IN')}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="3" style="padding:16px;text-align:center;color:#94a3b8;">No items</td></tr>`;
+
+  const trackingSection = status === 'shipped' && (courierPartner || trackingNumber || dispatchDateTime) ? `
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#0369a1;">📦 Shipment Details</p>
+      ${courierPartner ? `<p style="margin:4px 0;font-size:13px;color:#0f172a;">Courier: <strong>${escapeHtml(courierPartner)}</strong></p>` : ''}
+      ${trackingNumber ? `<p style="margin:4px 0;font-size:13px;color:#0f172a;">Tracking ID: <strong>${escapeHtml(trackingNumber)}</strong></p>` : ''}
+      ${dispatchDateTime ? `<p style="margin:4px 0;font-size:13px;color:#0f172a;">Dispatched: <strong>${new Date(dispatchDateTime).toLocaleString('en-IN')}</strong></p>` : ''}
+    </div>` : '';
+
+  const deliveredSection = status === 'delivered' && deliveredDateTime ? `
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0;font-size:13px;color:#15803d;">Delivered on: <strong>${new Date(deliveredDateTime).toLocaleString('en-IN')}</strong></p>
+    </div>` : '';
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Inter,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);">
+        
+        <!-- Header -->
+        <tr><td style="background:${config.color};padding:32px 40px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:40px;">${config.icon}</p>
+          <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">${config.title}</h1>
+          <p style="margin:8px 0 0;color:rgba(255,255,255,.8);font-size:14px;">Order #${escapeHtml(id)}</p>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:32px 40px;">
+          <p style="margin:0 0 16px;font-size:15px;color:#0f172a;">Hi <strong>${escapeHtml(customer)}</strong>,</p>
+          <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.6;">${config.message}</p>
+
+          ${trackingSection}
+          ${deliveredSection}
+
+          <!-- Items Table -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:20px;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0;">Product</th>
+                <th style="padding:10px 14px;text-align:center;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0;">Qty</th>
+                <th style="padding:10px 14px;text-align:right;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0;">Total</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+
+          <!-- Totals -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+            ${shippingCharges > 0 ? `<tr><td style="padding:6px 0;font-size:13px;color:#64748b;">Shipping Charges</td><td style="padding:6px 0;text-align:right;font-size:13px;color:#64748b;">₹${(shippingCharges).toLocaleString('en-IN')}</td></tr>` : ''}
+            <tr><td style="padding:10px 0;font-size:16px;font-weight:700;color:#0f172a;border-top:2px solid #e2e8f0;">Grand Total</td>
+            <td style="padding:10px 0;text-align:right;font-size:16px;font-weight:700;color:${config.color};border-top:2px solid #e2e8f0;">₹${grandTotal.toLocaleString('en-IN')}</td></tr>
+          </table>
+
+          <p style="margin:0;font-size:13px;color:#94a3b8;">Questions? Contact us at <a href="mailto:support@boultindia.com" style="color:${config.color};">support@boultindia.com</a></p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#f8fafc;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+          <p style="margin:0;font-size:12px;color:#94a3b8;">© 2026 Boult India · V Tech Multi Solutions · <a href="https://boultindia.com" style="color:#94a3b8;">boultindia.com</a></p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    const transporter = createTransporter();
+    const fromEmail = process.env.GMAIL_USER || process.env.HOSTINGER_EMAIL;
+    await transporter.sendMail({
+      from: `"Boult India" <${fromEmail}>`,
+      to: email,
+      bcc: ADMIN_CC,
+      subject: config.subject,
+      html,
+    });
+    console.log(`✅ Status email sent to ${email} for status: ${status}`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Status email error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   sendOrderConfirmation,
   sendInvoiceWithShippingCharges,
-  sendContactEmail
+  sendContactEmail,
+  sendStatusUpdateEmail,
 };

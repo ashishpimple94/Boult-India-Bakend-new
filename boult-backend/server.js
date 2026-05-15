@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { sendOrderConfirmation, sendInvoiceWithShippingCharges, sendContactEmail } = require('./services/emailService');
+const { sendOrderConfirmation, sendInvoiceWithShippingCharges, sendContactEmail, sendStatusUpdateEmail } = require('./services/emailService');
 const { errorHandler, asyncHandler } = require('./middleware/errorHandler');
 const { validateProduct, validateOrder, validateContactEmail } = require('./middleware/validator');
 require('dotenv').config();
@@ -176,6 +176,9 @@ app.put('/api/update-order', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Order ID required' });
     }
 
+    // Get old order to detect status change
+    const oldOrder = await Order.findOne({ id: orderId });
+
     const order = await Order.findOneAndUpdate(
       { id: orderId },
       { ...updates, updatedAt: new Date() },
@@ -186,8 +189,34 @@ app.put('/api/update-order', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    // If shipping charges were added/updated, send invoice email
-    if (updates.shippingCharges !== undefined && updates.shippingCharges > 0) {
+    const emailStatuses = ['processing', 'shipped', 'delivered', 'cancelled'];
+    const statusChanged = updates.status && oldOrder && updates.status !== oldOrder.status;
+    const shippingUpdated = updates.shippingCharges !== undefined && updates.shippingCharges > 0;
+    const courierUpdated = updates.courierPartner && updates.courierPartner !== (oldOrder?.courierPartner || '');
+
+    // Send status update email
+    if (statusChanged && emailStatuses.includes(updates.status)) {
+      console.log(`📧 Status changed to ${updates.status}, sending email to ${order.email}...`);
+      sendStatusUpdateEmail({
+        id: order.id,
+        customer: order.customer,
+        email: order.email,
+        status: order.status,
+        items: order.items,
+        amount: order.amount,
+        shippingCharges: order.shippingCharges,
+        courierPartner: order.courierPartner,
+        trackingNumber: order.trackingNumber,
+        dispatchDateTime: order.dispatchDateTime,
+        deliveredDateTime: order.deliveredDateTime,
+      }).then(r => {
+        if (r.success) console.log(`✅ Status email sent for ${updates.status}`);
+        else console.error(`❌ Status email failed:`, r.error);
+      }).catch(err => console.error('❌ Status email error:', err));
+    }
+
+    // Send invoice email when shipping charges updated
+    if (shippingUpdated) {
       console.log('📧 Shipping charges updated, sending invoice email...');
       sendInvoiceWithShippingCharges({
         id: order.id,
@@ -202,12 +231,29 @@ app.put('/api/update-order', async (req, res) => {
         shippingCharges: order.shippingCharges,
         items: order.items
       }).then(result => {
-        if (result.success) {
-          console.log('✅ Invoice email sent successfully');
-        } else {
-          console.error('❌ Invoice email failed:', result.error);
-        }
+        if (result.success) console.log('✅ Invoice email sent successfully');
+        else console.error('❌ Invoice email failed:', result.error);
       }).catch(err => console.error('❌ Invoice email error:', err));
+    }
+
+    // Send shipped email when courier partner updated (if already shipped)
+    if (courierUpdated && order.status === 'shipped') {
+      console.log('📧 Courier partner updated for shipped order, sending email...');
+      sendStatusUpdateEmail({
+        id: order.id,
+        customer: order.customer,
+        email: order.email,
+        status: 'shipped',
+        items: order.items,
+        amount: order.amount,
+        shippingCharges: order.shippingCharges,
+        courierPartner: order.courierPartner,
+        trackingNumber: order.trackingNumber,
+        dispatchDateTime: order.dispatchDateTime,
+      }).then(r => {
+        if (r.success) console.log('✅ Courier update email sent');
+        else console.error('❌ Courier update email failed:', r.error);
+      }).catch(err => console.error('❌ Courier email error:', err));
     }
 
     res.json({ 
